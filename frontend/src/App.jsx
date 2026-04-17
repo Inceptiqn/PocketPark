@@ -1,25 +1,25 @@
 import './App.css';
-import Button from './components/button';
+import { useState } from 'react';
+import Menu from './components/menu';
+import Stats from './components/stats';
 
 function App() {
+	const [activeItem, setActiveItem] = useState('home');
+
 	return (
 		<main className="app-shell">
-			<section className="demo-card">
-				<h1 className="demo-title">PocketPark Buttons</h1>
-				<p className="demo-subtitle">
-					Componente base riutilizzabile per mobile e desktop.
-				</p>
+			<div className="phone-screen">
+				<section className="stats-grid" aria-label="Statistiche">
+					<Stats label="TEMPO RIMASTO" current={62} max={100} value="6:07" fillColor="#4e69ea" />
+					<Stats label="CREDITO RESIDUO" variant="empty" />
+					<Stats label="SPESA" variant="empty" />
+					<Stats label="PARCHEGGI" variant="empty" />
+				</section>
 
-				<div className="demo-actions">
-					<Button label="Accedi" />
-
-					<Button
-						imageSrc="https://www.svgrepo.com/show/512352/home-1393.svg"
-						imageAlt="Home icon"
-						ariaLabel="Torna alla home"
-					/>
+				<div className="phone-menu">
+					<Menu activeId={activeItem} onItemClick={setActiveItem} />
 				</div>
-			</section>
+			</div>
 		</main>
 	);
 }
