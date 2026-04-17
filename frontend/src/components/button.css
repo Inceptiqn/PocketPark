@@ -1,0 +1,52 @@
+.pp-button {
+  border: 1px solid #ecece6;
+  border-radius: 999px;
+  background: #f4f4ef;
+  color: #1f1f1f;
+  min-height: 44px;
+  padding: 0.75rem 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(40, 40, 20, 0.1);
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pp-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.02);
+  box-shadow: 0 12px 24px rgba(40, 40, 20, 0.15);
+}
+
+.pp-button:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.pp-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pp-button__icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+  filter: grayscale(1) contrast(10);
+}
+
+.pp-button.icon-only {
+  width: clamp(78px, 20vw, 112px);
+  min-width: clamp(78px, 20vw, 112px);
+  height: clamp(78px, 20vw, 112px);
+  padding: 0;
+  border-width: 2px;
+}
+
+.pp-button.icon-only .pp-button__icon {
+  width: clamp(32px, 9vw, 46px);
+  height: clamp(32px, 9vw, 46px);
+}
