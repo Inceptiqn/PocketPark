@@ -11,20 +11,37 @@
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
-	padding: 1.4rem 1rem 0.9rem;
+	justify-content: flex-start;
+	padding: 1.35rem 1rem 0.85rem;
 	background: #f6f6f6;
+}
+
+.dashboard-content {
+	display: grid;
+	gap: 1.45rem;
+	align-content: start;
 }
 
 .stats-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1.25rem 0.9rem;
+	gap: 0.9rem 0.8rem;
 	justify-items: center;
 	align-content: start;
-	padding-top: 0.2rem;
+	padding-top: 0.15rem;
 }
 
 .phone-menu {
-	padding-top: 1rem;
+	margin-top: auto;
+	padding-top: 1.1rem;
+}
+
+@media (max-width: 420px) {
+	.phone-screen {
+		padding-inline: 0.7rem;
+	}
+
+	.dashboard-content {
+		gap: 1.2rem;
+	}
 }

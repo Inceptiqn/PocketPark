@@ -1,0 +1,37 @@
+.pp-vehicle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.4rem;
+  background: linear-gradient(180deg, #f6f6ef 0%, #ebebdf 100%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.pp-vehicle--small {
+  width: 120px;
+  height: 90px;
+  padding: 0.4rem;
+}
+
+.pp-vehicle--medium {
+  width: 160px;
+  height: 120px;
+  padding: 0.6rem;
+}
+
+.pp-vehicle--large {
+  width: 220px;
+  height: 160px;
+  padding: 0.8rem;
+}
+
+.pp-vehicle__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}

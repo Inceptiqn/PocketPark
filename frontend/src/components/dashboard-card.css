@@ -1,0 +1,120 @@
+.pp-dashboard-card {
+  width: 100%;
+  border-radius: 1.85rem;
+  border: 1.5px solid rgba(60, 60, 60, 0.65);
+  background: linear-gradient(180deg, #dddcc5 0%, #d9d8bf 100%);
+  padding: 0.82rem 0.95rem 0.85rem;
+  box-shadow: 0 6px 14px rgba(25, 25, 25, 0.1);
+}
+
+.pp-dashboard-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.2rem;
+}
+
+.pp-dashboard-card__vehicle.pp-vehicle {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  width: 86px;
+  height: 58px;
+  padding: 0;
+}
+
+.pp-dashboard-card__vehicle-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-dashboard-card__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 4.4vw, 2rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+.pp-dashboard-card__plate {
+  margin: 0.08rem 0 0;
+  font-size: clamp(0.98rem, 3.4vw, 1.35rem);
+  font-weight: 400;
+}
+
+.pp-dashboard-card__address-row {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  margin: 0.45rem 0 0.75rem;
+}
+
+.pp-dashboard-card__address {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(0.96rem, 3.3vw, 1.5rem);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.pp-dashboard-card__location {
+  width: clamp(24px, 6vw, 34px);
+  height: clamp(24px, 6vw, 34px);
+  object-fit: contain;
+}
+
+.pp-dashboard-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.pp-dashboard-card__parking-type {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pp-dashboard-card__parking-badge {
+  width: clamp(40px, 10.5vw, 56px);
+  height: clamp(40px, 10.5vw, 56px);
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0.5rem;
+  border: 2px solid #101010;
+  background: #55b9e3;
+  color: #16313f;
+  font-size: clamp(1.9rem, 7vw, 2.5rem);
+  line-height: 1;
+  font-weight: 400;
+}
+
+.pp-dashboard-card__parking-label {
+  font-size: clamp(1rem, 4vw, 1.45rem);
+  font-weight: 500;
+}
+
+.pp-dashboard-card__stop-button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff4f33 0%, #ff2f1f 100%);
+  color: #ffffff;
+  min-height: 34px;
+  padding: 0.45rem 1.15rem;
+  font-size: clamp(0.95rem, 3.3vw, 1.2rem);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(211, 44, 28, 0.28);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.pp-dashboard-card__stop-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.pp-dashboard-card__stop-button:active {
+  transform: translateY(0) scale(0.98);
+}
