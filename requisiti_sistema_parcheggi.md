@@ -149,6 +149,29 @@
 
 Lo schema del database è definito in `database/ddl.sql`. Le chiavi primarie sono prevalentemente UUID (generate con `gen_random_uuid()` tramite estensione `pgcrypto`).
 
+### Note di integrità (priorità alta)
+
+#### 5.X `updated_at` aggiornato automaticamente
+
+In PostgreSQL `DEFAULT NOW()` si applica solo in `INSERT`. Per mantenere `updated_at` aggiornato anche in `UPDATE`, lo schema include un trigger `BEFORE UPDATE` (es. su `users` e `parcheggi`) che imposta `NEW.updated_at = NOW()`.
+
+#### 5.X Vincoli `CHECK` (date e valori numerici)
+
+Per prevenire dati invalidi lo schema include vincoli `CHECK`, ad esempio:
+- `prenotazioni.fine > prenotazioni.inizio`
+- `tariffe.prezzo_ora >= 0`
+- `parcheggi.posti_totali > 0`
+- `emissioni_risparmio.veicoli_transitati >= 0`
+- (facoltativi) `emissioni_risparmio.km_medi_risparmiati >= 0`, `emissioni_risparmio.co2_risparmiata_kg >= 0` (con gestione dei `NULL`)
+
+#### 5.X Stati/Tipologie: ENUM (o CHECK)
+
+Per evitare valori “sporchi” (es. `Attiva`, `attivo`, `ACT`) i campi `stato` sono tipizzati tramite `ENUM` a livello DB:
+- `parcheggi.stato` → `parcheggio_stato`
+- `prenotazioni.stato` → `prenotazione_stato`
+
+> In alternativa agli ENUM è possibile usare `CHECK (stato IN (...))`, ma lo schema corrente adotta `ENUM`.
+
 ### 5.1 Estensioni
 
 - `pgcrypto` (abilitata con `CREATE EXTENSION IF NOT EXISTS "pgcrypto";`) per la generazione UUID.

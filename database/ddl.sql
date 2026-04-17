@@ -2,6 +2,21 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ======================
+-- ENUMS (stati)
+-- ======================
+DO $$ BEGIN
+    CREATE TYPE parcheggio_stato AS ENUM ('disponibile', 'occupato', 'chiuso');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE prenotazione_stato AS ENUM ('creata', 'confermata', 'cancellata', 'conclusa');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- ======================
 -- ROLES
 -- ======================
 CREATE TABLE roles (
@@ -59,10 +74,12 @@ CREATE TABLE parcheggi (
     lat DOUBLE PRECISION,
     lng DOUBLE PRECISION,
     posti_totali INT NOT NULL,
-    stato TEXT NOT NULL,
+    stato parcheggio_stato NOT NULL,
     descrizione TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_parcheggi_posti_totali_gt_zero CHECK (posti_totali > 0)
 );
 
 -- ======================
@@ -80,7 +97,9 @@ CREATE TABLE tariffe (
     CONSTRAINT fk_tariffe_parcheggio
         FOREIGN KEY (parcheggio_id)
         REFERENCES parcheggi(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT chk_tariffe_prezzo_ora_nonneg CHECK (prezzo_ora >= 0)
 );
 
 -- ======================
@@ -94,7 +113,7 @@ CREATE TABLE prenotazioni (
     tariffa_id UUID NOT NULL,
     inizio TIMESTAMPTZ NOT NULL,
     fine TIMESTAMPTZ NOT NULL,
-    stato TEXT NOT NULL,
+    stato prenotazione_stato NOT NULL,
     importo_totale NUMERIC(10,2),
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -117,7 +136,9 @@ CREATE TABLE prenotazioni (
     CONSTRAINT fk_prenotazioni_tariffa
         FOREIGN KEY (tariffa_id)
         REFERENCES tariffe(id)
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_prenotazioni_fine_gt_inizio CHECK (fine > inizio)
 );
 
 -- ======================
@@ -134,18 +155,32 @@ CREATE TABLE emissioni_risparmio (
     CONSTRAINT fk_emissioni_parcheggio
         FOREIGN KEY (parcheggio_id)
         REFERENCES parcheggi(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT chk_emissioni_veicoli_transitati_nonneg CHECK (veicoli_transitati >= 0),
+    CONSTRAINT chk_emissioni_km_medi_risparmiati_nonneg CHECK (km_medi_risparmiati IS NULL OR km_medi_risparmiati >= 0),
+    CONSTRAINT chk_emissioni_co2_risparmiata_kg_nonneg CHECK (co2_risparmiata_kg IS NULL OR co2_risparmiata_kg >= 0)
 );
 
 -- ======================
--- INDEXES (important ones)
+-- TRIGGERS updated_at
 -- ======================
-CREATE INDEX idx_users_role_id ON users(role_id);
-CREATE INDEX idx_veicoli_utente_id ON veicoli(utente_id);
-CREATE INDEX idx_tariffe_parcheggio_id ON tariffe(parcheggio_id);
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE INDEX idx_prenotazioni_utente_id ON prenotazioni(utente_id);
-CREATE INDEX idx_prenotazioni_parcheggio_id ON prenotazioni(parcheggio_id);
-CREATE INDEX idx_prenotazioni_veicolo_id ON prenotazioni(veicolo_id);
+DROP TRIGGER IF EXISTS trg_users_set_updated_at ON users;
+CREATE TRIGGER trg_users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
-CREATE INDEX idx_emissioni_parcheggio_id ON emissioni_risparmio(parcheggio_id);
+DROP TRIGGER IF EXISTS trg_parcheggi_set_updated_at ON parcheggi;
+CREATE TRIGGER trg_parcheggi_set_updated_at
+BEFORE UPDATE ON parcheggi
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
