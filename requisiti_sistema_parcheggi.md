@@ -33,12 +33,11 @@
 
 ### 1.3 Database / Backend-as-a-Service
 
-- **PocketBase** — database e servizio di autenticazione;
+- **PostgreSQL** — database relazionale principale (schema in `database/ddl.sql`).
 
 ### 1.4 Autenticazione
 
 - Autenticazione basata su **JWT** (JSON Web Token)
-- I token vengono emessi dal backend Python dopo la verifica delle credenziali tramite PocketBase
 - Ogni token contiene il ruolo dell'utente (`admin` | `user`)
 
 ---
@@ -113,7 +112,7 @@
 
 - **RNF-12** — Il backend deve esporre documentazione automatica delle API tramite Swagger UI (`/docs`) e ReDoc (`/redoc`), fornita nativamente da FastAPI.
 - **RNF-13** — Il codice deve essere organizzato in moduli separati per funzionalità (autenticazione, parcheggi, prenotazioni).
-- **RNF-14** — Le variabili di configurazione sensibili (URL di PocketBase, chiave segreta JWT, ecc.) devono essere gestite tramite variabili d'ambiente e mai incluse nel codice sorgente.
+- **RNF-14** — Le variabili di configurazione sensibili (URL DB, credenziali DB, chiave segreta JWT, ecc.) devono essere gestite tramite variabili d'ambiente e mai incluse nel codice sorgente.
 
 ---
 
@@ -146,65 +145,126 @@
 
 ---
 
-## 5. Struttura del Database
+## 5. Struttura del Database (PostgreSQL)
 
-La persistenza dei dati può essere organizzata in PocketBase con tre collezioni principali, più eventuali campi di supporto per statistiche e controllo storico.
+Lo schema del database è definito in `database/ddl.sql`. Le chiavi primarie sono prevalentemente UUID (generate con `gen_random_uuid()` tramite estensione `pgcrypto`).
 
-### 5.1 Collezione `users`
+### 5.1 Estensioni
 
-Contiene gli utenti del sistema, sia amministratori sia utenti standard.
+- `pgcrypto` (abilitata con `CREATE EXTENSION IF NOT EXISTS "pgcrypto";`) per la generazione UUID.
 
-| Campo | Tipo | Vincoli / Note |
-|---|---|---|
-| `id` | UUID / Record ID | Chiave primaria |
-| `email` | string | Unica, obbligatoria |
-| `passwordHash` | string | Hash bcrypt, mai in chiaro |
-| `role` | enum | `admin` oppure `user` |
-| `createdAt` | datetime | Data di creazione |
-| `updatedAt` | datetime | Data ultimo aggiornamento |
-| `isActive` | boolean | Utente attivo/disattivato |
+### 5.2 Tabella `roles`
 
-### 5.2 Collezione `parcheggi`
-
-Memorizza i parcheggi gestiti dal Comune.
+Ruoli applicativi (es. amministratore/utente).
 
 | Campo | Tipo | Vincoli / Note |
 |---|---|---|
-| `id` | UUID / Record ID | Chiave primaria |
-| `nome` | string | Obbligatorio |
-| `indirizzo` | string | Obbligatorio |
-| `postiTotali` | integer | Maggiore di 0 |
-| `postiDisponibili` | integer | Maggiore o uguale a 0 |
-| `stato` | enum | `attivo`, `chiuso`, `manutenzione` |
-| `descrizione` | string | Facoltativo |
-| `createdAt` | datetime | Data di creazione |
-| `updatedAt` | datetime | Data ultimo aggiornamento |
+| `id` | SERIAL | PK |
+| `nome` | TEXT | NOT NULL |
+| `descrizione` | TEXT | opzionale |
 
-### 5.3 Collezione `prenotazioni`
+### 5.3 Tabella `users`
 
-Registra tutte le prenotazioni effettuate dagli utenti.
+Utenti del sistema.
 
 | Campo | Tipo | Vincoli / Note |
 |---|---|---|
-| `id` | UUID / Record ID | Chiave primaria |
-| `utenteId` | relation -> `users` | Utente proprietario della prenotazione |
-| `parcheggioId` | relation -> `parcheggi` | Parcheggio prenotato |
-| `dataOraInizio` | datetime | Obbligatorio |
-| `dataOraFine` | datetime | Obbligatorio, successivo all'inizio |
-| `stato` | enum | `attiva`, `cancellata`, `conclusa` |
-| `createdAt` | datetime | Data creazione prenotazione |
-| `note` | string | Facoltativo |
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `role_id` | INT | NOT NULL, FK → `roles(id)` (ON DELETE RESTRICT) |
+| `email` | TEXT | NOT NULL, UNIQUE |
+| `password_hash` | TEXT | NOT NULL |
+| `nome` | TEXT | NOT NULL |
+| `cognome` | TEXT | NOT NULL |
+| `is_active` | BOOLEAN | NOT NULL, default TRUE |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default NOW() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default NOW() |
 
-### 5.4 Indici Consigliati
+### 5.4 Tabella `veicoli`
 
-- Indice su `users.email` per velocizzare login e registrazione.
-- Indice su `prenotazioni.utenteId` per recuperare rapidamente le prenotazioni di un utente.
-- Indice su `prenotazioni.parcheggioId` e `prenotazioni.dataOraInizio` per le ricerche amministrative.
-- Indice su `parcheggi.stato` per filtrare i parcheggi attivi.
+Veicoli associati a un utente.
 
-### 5.5 Dati per le Statistiche
+| Campo | Tipo | Vincoli / Note |
+|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `utente_id` | UUID | NOT NULL, FK → `users(id)` (ON DELETE CASCADE) |
+| `targa` | TEXT | NOT NULL, UNIQUE |
+| `marca` | TEXT | opzionale |
+| `modello` | TEXT | opzionale |
+| `tipo` | TEXT | opzionale (es. auto/moto/...) |
 
-Per soddisfare i requisiti di analisi e reporting, il sistema può calcolare o derivare i seguenti dati:
+### 5.5 Tabella `parcheggi`
 
-- numero di prenotazioni per parcheggio in un intervallo temporale;
-- parcheggi più utilizzati;
+Anagrafica parcheggi.
+
+| Campo | Tipo | Vincoli / Note |
+|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `nome` | TEXT | NOT NULL |
+| `via` | TEXT | opzionale |
+| `citta` | TEXT | opzionale |
+| `cap` | TEXT | opzionale |
+| `lat` | DOUBLE PRECISION | opzionale |
+| `lng` | DOUBLE PRECISION | opzionale |
+| `posti_totali` | INT | NOT NULL |
+| `stato` | TEXT | NOT NULL |
+| `descrizione` | TEXT | opzionale |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default NOW() |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default NOW() |
+
+> Nota: nello schema non è presente `posti_disponibili`. La disponibilità può essere calcolata come `posti_totali` meno prenotazioni attive nel range temporale.
+
+### 5.6 Tabella `tariffe`
+
+Tariffe per parcheggio (potenzialmente per tipo veicolo e con validità temporale).
+
+| Campo | Tipo | Vincoli / Note |
+|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `parcheggio_id` | UUID | NOT NULL, FK → `parcheggi(id)` (ON DELETE CASCADE) |
+| `nome` | TEXT | NOT NULL |
+| `tipo_veicolo` | TEXT | opzionale |
+| `prezzo_ora` | NUMERIC(10,2) | NOT NULL |
+| `valido_dal` | TIMESTAMPTZ | NOT NULL |
+| `valido_al` | TIMESTAMPTZ | opzionale |
+
+### 5.7 Tabella `prenotazioni`
+
+Prenotazioni effettuate dagli utenti.
+
+| Campo | Tipo | Vincoli / Note |
+|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `utente_id` | UUID | NOT NULL, FK → `users(id)` (ON DELETE CASCADE) |
+| `parcheggio_id` | UUID | NOT NULL, FK → `parcheggi(id)` (ON DELETE CASCADE) |
+| `veicolo_id` | UUID | NOT NULL, FK → `veicoli(id)` (ON DELETE CASCADE) |
+| `tariffa_id` | UUID | NOT NULL, FK → `tariffe(id)` (ON DELETE RESTRICT) |
+| `inizio` | TIMESTAMPTZ | NOT NULL |
+| `fine` | TIMESTAMPTZ | NOT NULL |
+| `stato` | TEXT | NOT NULL |
+| `importo_totale` | NUMERIC(10,2) | opzionale |
+| `note` | TEXT | opzionale |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default NOW() |
+
+### 5.8 Tabella `emissioni_risparmio`
+
+Serie storica dati di impatto/risparmio ambientale per parcheggio.
+
+| Campo | Tipo | Vincoli / Note |
+|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` |
+| `parcheggio_id` | UUID | NOT NULL, FK → `parcheggi(id)` (ON DELETE CASCADE) |
+| `data` | DATE | NOT NULL |
+| `veicoli_transitati` | INT | NOT NULL |
+| `km_medi_risparmiati` | NUMERIC(10,2) | opzionale |
+| `co2_risparmiata_kg` | NUMERIC(10,2) | opzionale |
+
+### 5.9 Indici
+
+Indici presenti in `ddl.sql`:
+- `idx_users_role_id` su `users(role_id)`
+- `idx_veicoli_utente_id` su `veicoli(utente_id)`
+- `idx_tariffe_parcheggio_id` su `tariffe(parcheggio_id)`
+- `idx_prenotazioni_utente_id` su `prenotazioni(utente_id)`
+- `idx_prenotazioni_parcheggio_id` su `prenotazioni(parcheggio_id)`
+- `idx_prenotazioni_veicolo_id` su `prenotazioni(veicolo_id)`
+- `idx_emissioni_parcheggio_id` su `emissioni_risparmio(parcheggio_id)`
