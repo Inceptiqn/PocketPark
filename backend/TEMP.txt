@@ -1,0 +1,59 @@
+Start with a tiny Flask REST API that:
+
+connects to Postgres
+exposes 1–2 “read-only” endpoints (e.g., list parcheggi, get one parcheggio)
+adds basic error handling + CORS so your frontend can call it
+Below is the simplest path for your schema.
+
+1) Minimal REST shape (what you’ll build first)
+Endpoints to start:
+
+GET /api/health → sanity check
+GET /api/parcheggi → list all parking lots
+GET /api/parcheggi/<uuid> → get one parking lot
+These map directly to your parcheggi table in ddl.sql.
+
+2) Add database connection (Postgres)
+Use environment variables so you don’t hardcode credentials.
+
+Example env vars:
+
+DATABASE_URL=postgresql://user:password@localhost:5432/pocketpark
+In Flask, the simplest library is psycopg (or psycopg2). You open a connection per request (or use a small pool later).
+
+3) Code: turn main.py into a tiny REST server
+Conceptually, you’ll:
+
+add CORS
+add a helper get_conn()
+implement the 3 endpoints
+If you want, tell me whether you prefer raw SQL (fastest to start) or SQLAlchemy (more structure). For “start simple”, raw SQL is fine.
+
+4) What to implement later (after the basics work)
+Once the above works end-to-end from the frontend, the next steps usually are:
+
+CRUD for main entities
+
+parcheggi (create/update/close)
+tariffe (list by parcheggio, create, update)
+veicoli (list by user, create)
+prenotazioni (create/confirm/cancel/conclude)
+Auth
+
+register/login endpoint
+password hashing
+JWT tokens
+role checks (your roles table)
+Business rules
+
+prevent overlapping prenotazioni on same parcheggio (and/or per posto if you add “posti” table later)
+enforce posti_totali capacity
+compute importo_totale from tariffe.prezzo_ora and duration
+Validations + OpenAPI
+
+request/response schemas (pydantic/marshmallow)
+Swagger/OpenAPI docs
+Better DB handling
+
+connection pooling
+migrations (Alembic or Flask-Migrate)
