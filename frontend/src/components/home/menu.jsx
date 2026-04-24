@@ -27,10 +27,10 @@ const defaultItems = [
 		ariaLabel: 'Auto',
 	},
 	{
-		id: 'profile',
+		id: 'biglietti',
 		imageSrc: 'https://www.svgrepo.com/show/532363/user-alt-1.svg',
-		imageAlt: 'Profilo',
-		ariaLabel: 'Profilo',
+		imageAlt: 'Biglietti',
+		ariaLabel: 'Biglietti',
 	},
 ];
 

@@ -4,6 +4,7 @@ import Menu from './components/home/menu';
 import Stats from './components/home/stats';
 import DashboardCard from './components/home/dashboard-card';
 import Mappa from './components/maps/mappa';
+import Biglietti from './components/biglietti/Biglietti';
 
 function PlaceholderPage({ title, subtitle }) {
 	return (
@@ -44,8 +45,8 @@ function App() {
 				return <PlaceholderPage title="Nuovo Parcheggio" subtitle="Qui puoi iniziare un nuovo parcheggio." />;
 			case 'cars':
 				return <PlaceholderPage title="Le Tue Auto" subtitle="Qui puoi gestire i tuoi veicoli." />;
-			case 'profile':
-				return <PlaceholderPage title="Profilo" subtitle="Qui puoi modificare il tuo account." />;
+			case 'biglietti':
+				return <Biglietti />;
 			default:
 				return null;
 		}

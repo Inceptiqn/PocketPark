@@ -1,0 +1,127 @@
+.biglietti-container {
+  padding: 20px;
+  background-color: #f4f6f8;
+  /* Modifica l'altezza per adattarsi allo spazio rimanente */
+  height: 100%; 
+  overflow-y: auto; /* Aggiunge lo scorrimento se il contenuto supera l'altezza */
+  box-sizing: border-box; /* Assicura che padding non aumenti la dimensione totale */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+.biglietti-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.biglietti-header h1 {
+  color: #333;
+  font-size: 28px;
+}
+
+.biglietti-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 25px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 15px;
+  border: none;
+  background-color: transparent;
+  color: #555;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.tab-btn.active {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.ticket-list {
+  display: grid;
+  gap: 15px;
+}
+
+.no-tickets-message {
+  text-align: center;
+  padding: 40px;
+  color: #777;
+}
+
+.ticket-card {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 15px 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-left: 5px solid;
+  transition: transform 0.2s;
+}
+
+.ticket-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Colori per stato */
+.ticket-card.in_corso { border-color: #11b41e; } /* Giallo */
+.ticket-card.utilizzato { border-color: #6c757d; } /* Grigio */
+
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ticket-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.ticket-status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.ticket-status-badge.in_corso { background-color: #11b41e; }
+.ticket-status-badge.utilizzato { background-color: #6c757d; }
+
+.ticket-body p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.ticket-footer {
+  margin-top: 15px;
+  text-align: right;
+}
+
+.use-ticket-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.use-ticket-btn:hover {
+  background-color: #0056b3;
+}
