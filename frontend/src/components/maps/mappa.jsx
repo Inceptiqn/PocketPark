@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mappa.css';
-import Search from './maps/search';
-import { mapCenter, parkingLegend, parkingSpots, parkingTypeColors } from './maps/mappa-data';
+import Search from './search';
+import { mapCenter, parkingLegend, parkingSpots, parkingTypeColors } from './mappa-data';
 
 const LOCATION_CONSENT_COOKIE = 'pp_location_consent';
 const LAST_POSITION_COOKIE = 'pp_last_position';
@@ -257,9 +257,10 @@ function Mappa() {
 				))}
 			</div>
 
+			<Search onSelect={handleSearchSelect} />
+
 			<div className="pp-map-page__map-card">
 				<div ref={mapNodeRef} className="pp-map-page__map" aria-label="Mappa reale con parcheggi" />
-				<Search onSelect={handleSearchSelect} />
 
 				<button type="button" className="pp-map-page__recenter-fab" onClick={handleGoToCurrentPosition} aria-label="Vai alla mia posizione">
 					<img
