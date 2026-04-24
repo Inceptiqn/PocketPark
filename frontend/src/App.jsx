@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Menu from './components/home/menu';
 import Stats from './components/home/stats';
 import DashboardCard from './components/home/dashboard-card';
-import Mappa from './components/mappa';
+import Mappa from './components/maps/mappa';
 
 function PlaceholderPage({ title, subtitle }) {
 	return (
