@@ -1,4 +1,4 @@
-import Button from './button';
+import Button from '../button';
 import './menu.css';
 
 const defaultItems = [

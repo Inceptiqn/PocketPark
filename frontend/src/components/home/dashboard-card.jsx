@@ -1,4 +1,4 @@
-import Vehicle from './vehicle';
+import Vehicle from './vehicle.jsx';
 import './dashboard-card.css';
 
 function DashboardCard({

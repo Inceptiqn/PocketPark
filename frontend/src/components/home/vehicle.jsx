@@ -1,7 +1,7 @@
 import './vehicle.css';
-import normalCarImage from '../assets/normal-car.png';
-import electricCarImage from '../assets/electric-car.png';
-import motorcycleImage from '../assets/motocycle.png';
+import normalCarImage from '../../assets/normal-car.png';
+import electricCarImage from '../../assets/electric-car.png';
+import motorcycleImage from '../../assets/motocycle.png';
 
 const vehicleImages = {
 	normal: {

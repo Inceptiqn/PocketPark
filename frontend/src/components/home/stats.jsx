@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import './stat.css';
+import './stats.css';
 
 function Stats({
 	label = 'TEMPO RIMASTO',

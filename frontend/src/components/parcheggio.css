@@ -1,0 +1,66 @@
+.pp-parcheggio {
+	position: absolute;
+	min-width: 2.8rem;
+	min-height: 2.8rem;
+	padding: 0.2rem 0.5rem;
+	border-radius: 0.95rem;
+	border: 2px solid rgba(20, 20, 20, 0.82);
+	box-shadow:
+		0 12px 24px rgba(0, 0, 0, 0.16),
+		inset 0 1px 0 rgba(255, 255, 255, 0.45);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	color: #13202a;
+	transform: translate(-50%, -50%);
+	backdrop-filter: blur(6px);
+	transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.pp-parcheggio:hover,
+.pp-parcheggio.is-selected {
+	transform: translate(-50%, -50%) scale(1.05);
+	box-shadow:
+		0 16px 30px rgba(0, 0, 0, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.pp-parcheggio__label {
+	position: relative;
+	z-index: 1;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.pp-parcheggio--occupied {
+	background: linear-gradient(180deg, #ff7272 0%, #e43c3c 100%);
+}
+
+.pp-parcheggio--electric {
+	background: linear-gradient(180deg, #73ea97 0%, #1fad4e 100%);
+}
+
+.pp-parcheggio--normal {
+	background: linear-gradient(180deg, #79ecff 0%, #18afd4 100%);
+}
+
+.pp-parcheggio--disabled {
+	background: linear-gradient(180deg, #ffe887 0%, #f2bc12 100%);
+}
+
+.pp-parcheggio--motorcycle {
+	background: linear-gradient(180deg, #c79aff 0%, #8a43f1 100%);
+}
+
+.pp-parcheggio--medium {
+	min-width: 3rem;
+	min-height: 3rem;
+}
+
+.pp-parcheggio--small {
+	min-width: 2.5rem;
+	min-height: 2.5rem;
+	font-size: 0.66rem;
+}

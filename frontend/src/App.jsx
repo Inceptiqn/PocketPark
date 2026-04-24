@@ -1,8 +1,9 @@
 import './App.css';
 import { useState } from 'react';
-import Menu from './components/menu';
-import Stats from './components/stats';
-import DashboardCard from './components/dashboard-card';
+import Menu from './components/home/menu';
+import Stats from './components/home/stats';
+import DashboardCard from './components/home/dashboard-card';
+import Mappa from './components/mappa';
 
 function PlaceholderPage({ title, subtitle }) {
 	return (
@@ -38,7 +39,7 @@ function App() {
 					</div>
 				);
 			case 'position':
-				return <PlaceholderPage title="Posizione" subtitle="Qui puoi vedere la mappa e la tua posizione." />;
+				return <Mappa />;
 			case 'add':
 				return <PlaceholderPage title="Nuovo Parcheggio" subtitle="Qui puoi iniziare un nuovo parcheggio." />;
 			case 'cars':
