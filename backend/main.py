@@ -4,7 +4,7 @@ from routes import api
 
 app = Flask(__name__)
 
-# All /api/* routes live in routes.py
+# routes/api.py
 app.register_blueprint(api)
 
 

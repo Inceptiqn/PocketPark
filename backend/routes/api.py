@@ -10,5 +10,5 @@ def health_check():
 
 @api.get("/parcheggi")
 def list_parcheggi():
-    # TODO:
+    # TODO: replace with real data source
     return jsonify(parcheggi=[]), 200
