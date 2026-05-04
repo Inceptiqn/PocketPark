@@ -7,10 +7,10 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum as SAEnum,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
-    String,
     Text,
     func,
 )
@@ -77,8 +77,8 @@ class Parcheggio(Base):
     via: Mapped[str | None] = mapped_column(Text)
     citta: Mapped[str | None] = mapped_column(Text)
     cap: Mapped[str | None] = mapped_column(Text)
-    lat: Mapped[float | None] = mapped_column(Numeric(10, 6))
-    lng: Mapped[float | None] = mapped_column(Numeric(10, 6))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
     posti_totali: Mapped[int] = mapped_column(Integer, nullable=False)
     stato: Mapped[ParcheggioStato] = mapped_column(SAEnum(ParcheggioStato, name="parcheggio_stato"), nullable=False)
     descrizione: Mapped[str | None] = mapped_column(Text)

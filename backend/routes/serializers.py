@@ -7,7 +7,6 @@ def user_to_dict(user):
         "id": str(user.id),
         "role_id": user.role_id,
         "email": user.email,
-        "password_hash": user.password_hash,
         "nome": user.nome,
         "cognome": user.cognome,
         "is_active": user.is_active,
