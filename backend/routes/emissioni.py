@@ -6,10 +6,10 @@ from routes.serializers import emissione_to_dict
 from routes.utils import commit_or_error, get_json, parse_date, parse_uuid
 
 
-emissioni_bp = Blueprint("emissioni", __name__, url_prefix="/api")
+emissioni_bp = Blueprint("emissioni", __name__, url_prefix="/api/emissioni")
 
 
-@emissioni_bp.get("/emissioni")
+@emissioni_bp.get("")
 def list_emissioni():
     session = get_session()
     try:
@@ -19,7 +19,7 @@ def list_emissioni():
         session.close()
 
 
-@emissioni_bp.post("/emissioni")
+@emissioni_bp.post("")
 def create_emissione():
     session = get_session()
     try:
@@ -46,7 +46,7 @@ def create_emissione():
         session.close()
 
 
-@emissioni_bp.get("/emissioni/<uuid:record_id>")
+@emissioni_bp.get("/<uuid:record_id>")
 def get_emissione(record_id):
     session = get_session()
     try:
@@ -58,7 +58,7 @@ def get_emissione(record_id):
         session.close()
 
 
-@emissioni_bp.put("/emissioni/<uuid:record_id>")
+@emissioni_bp.put("/<uuid:record_id>")
 def update_emissione(record_id):
     session = get_session()
     try:
@@ -86,7 +86,7 @@ def update_emissione(record_id):
         session.close()
 
 
-@emissioni_bp.delete("/emissioni/<uuid:record_id>")
+@emissioni_bp.delete("/<uuid:record_id>")
 def delete_emissione(record_id):
     session = get_session()
     try:

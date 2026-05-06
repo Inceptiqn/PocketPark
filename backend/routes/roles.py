@@ -6,10 +6,10 @@ from routes.serializers import role_to_dict
 from routes.utils import commit_or_error, get_json
 
 
-roles_bp = Blueprint("roles", __name__, url_prefix="/api")
+roles_bp = Blueprint("roles", __name__, url_prefix="/api/roles")
 
 
-@roles_bp.get("/roles")
+@roles_bp.get("")
 def list_roles():
     session = get_session()
     try:
@@ -19,7 +19,7 @@ def list_roles():
         session.close()
 
 
-@roles_bp.post("/roles")
+@roles_bp.post("")
 def create_role():
     session = get_session()
     try:
@@ -39,7 +39,7 @@ def create_role():
         session.close()
 
 
-@roles_bp.get("/roles/<int:role_id>")
+@roles_bp.get("/<int:role_id>")
 def get_role(role_id):
     session = get_session()
     try:
@@ -51,7 +51,7 @@ def get_role(role_id):
         session.close()
 
 
-@roles_bp.put("/roles/<int:role_id>")
+@roles_bp.put("/<int:role_id>")
 def update_role(role_id):
     session = get_session()
     try:
@@ -73,7 +73,7 @@ def update_role(role_id):
         session.close()
 
 
-@roles_bp.delete("/roles/<int:role_id>")
+@roles_bp.delete("/<int:role_id>")
 def delete_role(role_id):
     session = get_session()
     try:

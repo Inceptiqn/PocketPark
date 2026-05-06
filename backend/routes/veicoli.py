@@ -6,10 +6,10 @@ from routes.serializers import veicolo_to_dict
 from routes.utils import commit_or_error, get_json, parse_uuid
 
 
-veicoli_bp = Blueprint("veicoli", __name__, url_prefix="/api")
+veicoli_bp = Blueprint("veicoli", __name__, url_prefix="/api/veicoli")
 
 
-@veicoli_bp.get("/veicoli")
+@veicoli_bp.get("")
 def list_veicoli():
     session = get_session()
     try:
@@ -19,7 +19,7 @@ def list_veicoli():
         session.close()
 
 
-@veicoli_bp.post("/veicoli")
+@veicoli_bp.post("")
 def create_veicolo():
     session = get_session()
     try:
@@ -46,7 +46,7 @@ def create_veicolo():
         session.close()
 
 
-@veicoli_bp.get("/veicoli/<uuid:veicolo_id>")
+@veicoli_bp.get("/<uuid:veicolo_id>")
 def get_veicolo(veicolo_id):
     session = get_session()
     try:
@@ -58,7 +58,7 @@ def get_veicolo(veicolo_id):
         session.close()
 
 
-@veicoli_bp.put("/veicoli/<uuid:veicolo_id>")
+@veicoli_bp.put("/<uuid:veicolo_id>")
 def update_veicolo(veicolo_id):
     session = get_session()
     try:
@@ -86,7 +86,7 @@ def update_veicolo(veicolo_id):
         session.close()
 
 
-@veicoli_bp.delete("/veicoli/<uuid:veicolo_id>")
+@veicoli_bp.delete("/<uuid:veicolo_id>")
 def delete_veicolo(veicolo_id):
     session = get_session()
     try:

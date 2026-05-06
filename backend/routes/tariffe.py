@@ -6,10 +6,10 @@ from routes.serializers import tariffa_to_dict
 from routes.utils import commit_or_error, get_json, parse_datetime, parse_uuid
 
 
-tariffe_bp = Blueprint("tariffe", __name__, url_prefix="/api")
+tariffe_bp = Blueprint("tariffe", __name__, url_prefix="/api/tariffe")
 
 
-@tariffe_bp.get("/tariffe")
+@tariffe_bp.get("")
 def list_tariffe():
     session = get_session()
     try:
@@ -19,7 +19,7 @@ def list_tariffe():
         session.close()
 
 
-@tariffe_bp.post("/tariffe")
+@tariffe_bp.post("")
 def create_tariffa():
     session = get_session()
     try:
@@ -47,7 +47,7 @@ def create_tariffa():
         session.close()
 
 
-@tariffe_bp.get("/tariffe/<uuid:tariffa_id>")
+@tariffe_bp.get("/<uuid:tariffa_id>")
 def get_tariffa(tariffa_id):
     session = get_session()
     try:
@@ -59,7 +59,7 @@ def get_tariffa(tariffa_id):
         session.close()
 
 
-@tariffe_bp.put("/tariffe/<uuid:tariffa_id>")
+@tariffe_bp.put("/<uuid:tariffa_id>")
 def update_tariffa(tariffa_id):
     session = get_session()
     try:
@@ -89,7 +89,7 @@ def update_tariffa(tariffa_id):
         session.close()
 
 
-@tariffe_bp.delete("/tariffe/<uuid:tariffa_id>")
+@tariffe_bp.delete("/<uuid:tariffa_id>")
 def delete_tariffa(tariffa_id):
     session = get_session()
     try:

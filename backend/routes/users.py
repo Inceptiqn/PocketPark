@@ -7,10 +7,10 @@ from routes.serializers import user_to_dict
 from routes.utils import commit_or_error, get_json
 
 
-users_bp = Blueprint("users", __name__, url_prefix="/api")
+users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 
 
-@users_bp.get("/users")
+@users_bp.get("")
 def list_users():
     session = get_session()
     try:
@@ -20,7 +20,7 @@ def list_users():
         session.close()
 
 
-@users_bp.post("/users")
+@users_bp.post("")
 def create_user():
     session = get_session()
     try:
@@ -48,7 +48,7 @@ def create_user():
         session.close()
 
 
-@users_bp.get("/users/<uuid:user_id>")
+@users_bp.get("/<uuid:user_id>")
 def get_user(user_id):
     session = get_session()
     try:
@@ -60,7 +60,7 @@ def get_user(user_id):
         session.close()
 
 
-@users_bp.put("/users/<uuid:user_id>")
+@users_bp.put("/<uuid:user_id>")
 def update_user(user_id):
     session = get_session()
     try:
@@ -92,7 +92,7 @@ def update_user(user_id):
         session.close()
 
 
-@users_bp.delete("/users/<uuid:user_id>")
+@users_bp.delete("/<uuid:user_id>")
 def delete_user(user_id):
     session = get_session()
     try:

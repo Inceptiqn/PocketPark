@@ -6,10 +6,10 @@ from routes.serializers import parcheggio_to_dict
 from routes.utils import commit_or_error, get_json, parse_enum
 
 
-parcheggi_bp = Blueprint("parcheggi", __name__, url_prefix="/api")
+parcheggi_bp = Blueprint("parcheggi", __name__, url_prefix="/api/parcheggi")
 
 
-@parcheggi_bp.get("/parcheggi")
+@parcheggi_bp.get("")
 def list_parcheggi():
     session = get_session()
     try:
@@ -19,7 +19,7 @@ def list_parcheggi():
         session.close()
 
 
-@parcheggi_bp.post("/parcheggi")
+@parcheggi_bp.post("")
 def create_parcheggio():
     session = get_session()
     try:
@@ -50,7 +50,7 @@ def create_parcheggio():
         session.close()
 
 
-@parcheggi_bp.get("/parcheggi/<uuid:parcheggio_id>")
+@parcheggi_bp.get("/<uuid:parcheggio_id>")
 def get_parcheggio(parcheggio_id):
     session = get_session()
     try:
@@ -62,7 +62,7 @@ def get_parcheggio(parcheggio_id):
         session.close()
 
 
-@parcheggi_bp.put("/parcheggi/<uuid:parcheggio_id>")
+@parcheggi_bp.put("/<uuid:parcheggio_id>")
 def update_parcheggio(parcheggio_id):
     session = get_session()
     try:
@@ -98,7 +98,7 @@ def update_parcheggio(parcheggio_id):
         session.close()
 
 
-@parcheggi_bp.delete("/parcheggi/<uuid:parcheggio_id>")
+@parcheggi_bp.delete("/<uuid:parcheggio_id>")
 def delete_parcheggio(parcheggio_id):
     session = get_session()
     try:
