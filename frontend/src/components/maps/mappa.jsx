@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mappa.css';
 import Search from './search';
+import { getParcheggi } from '../../API';
 
 const LOCATION_CONSENT_COOKIE = 'pp_location_consent';
 const LAST_POSITION_COOKIE = 'pp_last_position';
 const LOCATION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 const MIN_CITY_ZOOM = 12;
-const BACKEND_URL = 'http://127.0.0.1:5000';
 
 // Mappa degli stati ai colori
 const parkingStateColors = {
@@ -96,12 +96,7 @@ function Mappa() {
 		const fetchParcheggi = async () => {
 			setIsLoadingParcheggi(true);
 			try {
-				const response = await fetch(`${BACKEND_URL}/api/parcheggi`);
-				if (!response.ok) {
-					throw new Error(`Errore ${response.status}`);
-				}
-				const data = await response.json();
-				const parcheggiArray = data.parcheggi || [];
+				const parcheggiArray = await getParcheggi();
 				setParcheggi(parcheggiArray);
 
 				// Calcola il centro della mappa basato su tutti i parcheggi
