@@ -1,11 +1,27 @@
-from flask import Flask
+from flask import Flask, jsonify
+from flask_cors import CORS
 
-from routes import api
+from routes import register_routes
 
 app = Flask(__name__)
+CORS(app)
 
-# routes/api.py
-app.register_blueprint(api)
+register_routes(app)
+
+
+@app.errorhandler(404)
+def not_found(_error):
+    return jsonify(error="not_found"), 404
+
+
+@app.errorhandler(400)
+def bad_request(_error):
+    return jsonify(error="bad_request"), 400
+
+
+@app.errorhandler(500)
+def server_error(_error):
+    return jsonify(error="server_error"), 500
 
 
 if __name__ == "__main__":
