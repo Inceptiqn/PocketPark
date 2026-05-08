@@ -5,6 +5,8 @@ import Stats from './components/home/stats';
 import DashboardCard from './components/home/dashboard-card';
 import Mappa from './components/maps/mappa';
 import Biglietti from './components/biglietti/Biglietti';
+import Selector from './components/nuovo/selector';
+import Forum from './components/nuovo/forum';
 
 function PlaceholderPage({ title, subtitle }) {
 	return (
@@ -17,6 +19,7 @@ function PlaceholderPage({ title, subtitle }) {
 
 function App() {
 	const [activeItem, setActiveItem] = useState('home');
+	const [selectorType, setSelectorType] = useState('auto');
 
 	const renderPage = () => {
 		switch (activeItem) {
@@ -42,7 +45,17 @@ function App() {
 			case 'position':
 				return <Mappa />;
 			case 'add':
-				return <PlaceholderPage title="Nuovo Parcheggio" subtitle="Qui puoi iniziare un nuovo parcheggio." />;
+				return (
+					<div className="add-page-content">
+						<Selector 
+							defaultSelected={selectorType}
+							onSelectionChange={(option) => {
+								setSelectorType(option);
+							}}
+						/>
+						<Forum type={selectorType} />
+					</div>
+				);
 			case 'cars':
 				return <PlaceholderPage title="Le Tue Auto" subtitle="Qui puoi gestire i tuoi veicoli." />;
 			case 'biglietti':
