@@ -21,16 +21,16 @@ const defaultItems = [
 		ariaLabel: 'Aggiungi',
 	},
 	{
-		id: 'cars',
-		imageSrc: 'https://www.svgrepo.com/show/96732/parking-time.svg',
-		imageAlt: 'Auto',
-		ariaLabel: 'Auto',
-	},
-	{
 		id: 'biglietti',
-		imageSrc: 'https://www.svgrepo.com/show/532363/user-alt-1.svg',
+		imageSrc: 'https://www.svgrepo.com/show/96732/parking-time.svg',
 		imageAlt: 'Biglietti',
 		ariaLabel: 'Biglietti',
+	},
+	{
+		id: 'profile',
+		imageSrc: 'https://www.svgrepo.com/show/532363/user-alt-1.svg',
+		imageAlt: 'Profilo',
+		ariaLabel: 'Profilo',
 	},
 ];
 

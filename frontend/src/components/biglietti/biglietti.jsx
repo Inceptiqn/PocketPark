@@ -1,12 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './biglietti.css';
-
-// Dati di esempio aggiornati per contenere solo biglietti 'in_corso' e 'utilizzato'.
-const mockTickets = [
-  { id: 1, park: 'Parcheggio Centro', date: '24/04/2026', time: '14:30 - 15:30', status: 'in_corso' },
-  { id: 2, park: 'Parcheggio Stadio', date: '22/04/2026', time: '20:00 - 23:00', status: 'utilizzato' },
-  { id: 3, park: 'Parcheggio Fiera', date: '20/04/2026', time: '10:00 - 18:00', status: 'utilizzato' },
-];
+import { getCurrentUserId, getParcheggi, getPrenotazioniByUtenteId } from '../../API';
 
 // Componente per la singola card del biglietto
 const TicketCard = ({ ticket }) => {
@@ -28,12 +22,71 @@ const TicketCard = ({ ticket }) => {
 };
 
 const Biglietti = () => {
-  const [activeTab, setActiveTab] = useState('in_corso'); // 'in_corso', 'utilizzato'
+  const [activeTab, setActiveTab] = useState('in_corso');
+  const [tickets, setTickets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const userId = getCurrentUserId();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTickets = async () => {
+      try {
+        if (!userId) {
+          if (isMounted) {
+            setTickets([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        const [parcheggi, prenotazioni] = await Promise.all([
+          getParcheggi(),
+          getPrenotazioniByUtenteId(userId),
+        ]);
+        const parcheggiMap = parcheggi.reduce((acc, item) => {
+          acc[item.id] = item.nome;
+          return acc;
+        }, {});
+
+        const now = new Date();
+        const normalized = prenotazioni.map((prenotazione) => {
+          const start = new Date(prenotazione.inizio);
+          const end = new Date(prenotazione.fine);
+          const isActive = now >= start && now <= end && prenotazione.stato !== 'cancellata';
+          const status = isActive ? 'in_corso' : 'utilizzato';
+
+          return {
+            id: prenotazione.id,
+            park: parcheggiMap[prenotazione.parcheggio_id] || 'Parcheggio',
+            date: start.toLocaleDateString('it-IT'),
+            time: `${start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
+            status,
+          };
+        });
+
+        if (isMounted) {
+          setTickets(normalized);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento biglietti:', error);
+        if (isMounted) {
+          setTickets([]);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadTickets();
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   const filteredTickets = useMemo(() => {
-    // Ora il filtro funziona solo per gli stati che vogliamo mostrare
-    return mockTickets.filter(ticket => ticket.status === activeTab);
-  }, [activeTab]);
+    return tickets.filter((ticket) => ticket.status === activeTab);
+  }, [activeTab, tickets]);
 
   return (
     <div className="biglietti-container">
@@ -55,8 +108,12 @@ const Biglietti = () => {
         </button>
       </nav>
       <main className="ticket-list">
-        {filteredTickets.length > 0 ? (
-          filteredTickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
+        {isLoading ? (
+          <div className="no-tickets-message">
+            <p>Caricamento biglietti...</p>
+          </div>
+        ) : filteredTickets.length > 0 ? (
+          filteredTickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
         ) : (
           <div className="no-tickets-message">
             <p>Nessun biglietto in questa categoria.</p>
