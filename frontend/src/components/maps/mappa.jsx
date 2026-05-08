@@ -3,12 +3,25 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mappa.css';
 import Search from './search';
-import { mapCenter, parkingLegend, parkingSpots, parkingTypeColors } from './mappa-data';
 
 const LOCATION_CONSENT_COOKIE = 'pp_location_consent';
 const LAST_POSITION_COOKIE = 'pp_last_position';
 const LOCATION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 const MIN_CITY_ZOOM = 12;
+const BACKEND_URL = 'http://127.0.0.1:5000';
+
+// Mappa degli stati ai colori
+const parkingStateColors = {
+	disponibile: '#22c55e',  // Verde
+	occupato: '#ef4444',      // Rosso
+	chiuso: '#9b5cff',        // Viola
+};
+
+const parkingLegend = [
+	{ state: 'disponibile', label: 'Disponibili', color: parkingStateColors.disponibile },
+	{ state: 'occupato', label: 'Occupati', color: parkingStateColors.occupato },
+	{ state: 'chiuso', label: 'Chiusi', color: parkingStateColors.chiuso },
+];
 
 function getCookie(name) {
 	if (typeof document === 'undefined') {
@@ -49,8 +62,8 @@ function parseSavedPosition(rawValue) {
 	};
 }
 
-function createParkingIcon(type, label) {
-	const color = parkingTypeColors[type] || parkingTypeColors.normal;
+function createParkingIcon(stato, label) {
+	const color = parkingStateColors[stato] || parkingStateColors.disponibile;
 
 	return L.divIcon({
 		className: 'pp-map-marker',
@@ -62,7 +75,7 @@ function createParkingIcon(type, label) {
 }
 
 function Mappa() {
-	const consentCookie = useMemo(() => getCookie(LOCATION_CONSENT_COOKIE), []);
+	const consentCookie = getCookie(LOCATION_CONSENT_COOKIE);
 	const mapNodeRef = useRef(null);
 	const mapInstanceRef = useRef(null);
 	const parkingLayersRef = useRef([]);
@@ -72,10 +85,45 @@ function Mappa() {
 	);
 	const [locationError, setLocationError] = useState('');
 	const [currentPosition, setCurrentPosition] = useState(() => parseSavedPosition(getCookie(LAST_POSITION_COOKIE)));
+	const [parcheggi, setParcheggi] = useState([]);
+	const [isLoadingParcheggi, setIsLoadingParcheggi] = useState(true);
+	const [mapCenter, setMapCenter] = useState([45.48245, 9.2057]); // Default Milan
 
-	const center = useMemo(() => mapCenter, []);
 	const showConsentPopup = locationState === 'prompt';
 
+	// Fetch parcheggi dal backend
+	useEffect(() => {
+		const fetchParcheggi = async () => {
+			setIsLoadingParcheggi(true);
+			try {
+				const response = await fetch(`${BACKEND_URL}/api/parcheggi`);
+				if (!response.ok) {
+					throw new Error(`Errore ${response.status}`);
+				}
+				const data = await response.json();
+				const parcheggiArray = data.parcheggi || [];
+				setParcheggi(parcheggiArray);
+
+				// Calcola il centro della mappa basato su tutti i parcheggi
+				if (parcheggiArray.length > 0) {
+					const validParcheggi = parcheggiArray.filter((p) => p.lat && p.lng);
+					if (validParcheggi.length > 0) {
+						const avgLat = validParcheggi.reduce((sum, p) => sum + p.lat, 0) / validParcheggi.length;
+						const avgLng = validParcheggi.reduce((sum, p) => sum + p.lng, 0) / validParcheggi.length;
+						setMapCenter([avgLat, avgLng]);
+					}
+				}
+			} catch (error) {
+				console.error('Errore nel caricamento dei parcheggi:', error);
+			} finally {
+				setIsLoadingParcheggi(false);
+			}
+		};
+
+		fetchParcheggi();
+	}, []);
+
+	// Inizializza la mappa
 	useEffect(() => {
 		if (!mapNodeRef.current || mapInstanceRef.current) {
 			return undefined;
@@ -86,7 +134,7 @@ function Mappa() {
 			attributionControl: true,
 			minZoom: MIN_CITY_ZOOM,
 			maxZoom: 19,
-		}).setView(center, 17);
+		}).setView(mapCenter, 17);
 
 		mapInstanceRef.current = map;
 
@@ -96,25 +144,53 @@ function Mappa() {
 			attribution: '&copy; OpenStreetMap contributors',
 		}).addTo(map);
 
-		parkingLayersRef.current = parkingSpots.map((spot) => {
-			const marker = L.marker(spot.position, {
-				icon: createParkingIcon(spot.type, spot.label),
-				keyboard: false,
-			});
-
-			marker.bindPopup(`<strong>${spot.label}</strong><br />${spot.type}`);
-			marker.addTo(map);
-			return marker;
-		});
-
 		return () => {
 			parkingLayersRef.current.forEach((marker) => marker.remove());
 			parkingLayersRef.current = [];
 			map.remove();
 			mapInstanceRef.current = null;
 		};
-	}, [center]);
+	}, [mapCenter]);
 
+	// Aggiungi i marker dei parcheggi alla mappa
+	useEffect(() => {
+		const map = mapInstanceRef.current;
+		if (!map || parcheggi.length === 0) {
+			return;
+		}
+
+		// Rimuovi i marker precedenti
+		parkingLayersRef.current.forEach((marker) => marker.remove());
+		parkingLayersRef.current = [];
+
+		// Aggiungi i nuovi marker
+		parcheggi.forEach((parcheggio) => {
+			if (!parcheggio.lat || !parcheggio.lng) {
+				return; // Salta i parcheggi senza coordinate
+			}
+
+			const position = [parcheggio.lat, parcheggio.lng];
+			const label = parcheggio.nome.substring(0, 1).toUpperCase();
+			const marker = L.marker(position, {
+				icon: createParkingIcon(parcheggio.stato, label),
+				keyboard: false,
+			});
+
+			const popupContent = `<div>
+				<strong>${parcheggio.nome}</strong><br />
+				Posti: ${parcheggio.posti_totali}<br />
+				Stato: ${parcheggio.stato}<br />
+				${parcheggio.via ? `Indirizzo: ${parcheggio.via}<br />` : ''}
+				${parcheggio.citta ? `${parcheggio.citta}` : ''}
+			</div>`;
+
+			marker.bindPopup(popupContent);
+			marker.addTo(map);
+			parkingLayersRef.current.push(marker);
+		});
+	}, [parcheggi]);
+
+	// Gestisci la posizione dell'utente
 	useEffect(() => {
 		const map = mapInstanceRef.current;
 
@@ -250,9 +326,7 @@ function Mappa() {
 
 			<div className="pp-map-page__legend" aria-label="Legenda parcheggi">
 				{parkingLegend.map((item) => (
-					<div key={item.type} className="pp-map-page__legend-item">
-						<span className="pp-map-page__legend-dot" style={{ backgroundColor: item.color }} aria-hidden="true" />
-						<span>{item.label}</span>
+				<div key={item.state} className="pp-map-page__legend-item">
 					</div>
 				))}
 			</div>
@@ -262,14 +336,18 @@ function Mappa() {
 			<div className="pp-map-page__map-card">
 				<div ref={mapNodeRef} className="pp-map-page__map" aria-label="Mappa reale con parcheggi" />
 
-				<button type="button" className="pp-map-page__recenter-fab" onClick={handleGoToCurrentPosition} aria-label="Vai alla mia posizione">
-					<img
-						className="pp-map-page__recenter-icon"
-						src="https://www.svgrepo.com/show/535486/location-target.svg"
-						alt=""
-						aria-hidden="true"
-					/>
-				</button>
+			{isLoadingParcheggi && (
+				<div className="pp-map-page__location-status">Caricamento parcheggi...</div>
+			)}
+
+			<button type="button" className="pp-map-page__recenter-fab" onClick={handleGoToCurrentPosition} aria-label="Vai alla mia posizione">
+				<img
+					className="pp-map-page__recenter-icon"
+					src="https://www.svgrepo.com/show/535486/location-target.svg"
+					alt=""
+					aria-hidden="true"
+				/>
+			</button>
 
 				{locationState === 'locating' ? (
 					<div className="pp-map-page__location-status">Sto cercando la tua posizione...</div>

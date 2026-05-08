@@ -47,6 +47,12 @@
 	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
+.pp-forum__textarea {
+	resize: vertical;
+	min-height: 80px;
+	font-family: inherit;
+}
+
 .pp-forum__input:focus,
 .pp-forum__select:focus {
 	outline: none;
@@ -103,16 +109,6 @@
 	opacity: 0.6;
 	cursor: not-allowed;
 	transform: none;
-}
-
-/* Auto form specific styling */
-.pp-forum__form--auto {
-	/* Base styling inherited */
-}
-
-/* Ticket form specific styling */
-.pp-forum__form--ticket {
-	/* Base styling inherited */
 }
 
 /* Responsive */

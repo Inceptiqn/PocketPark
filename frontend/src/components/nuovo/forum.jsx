@@ -3,18 +3,31 @@ import './forum.css';
 
 function Forum({ type = 'auto' }) {
 	const [formData, setFormData] = useState({
+		targa: '',
 		marca: '',
 		modello: '',
-		targa: '',
-		colore: '',
+		tipo: 'auto',
 	});
 
 	const [ticketData, setTicketData] = useState({
-		tipoAbbonamento: 'orario',
-		ore: '1',
-		data: '',
-		ora: '',
+		parcheggio_id: '',
+		veicolo_id: '',
+		inizio: '',
+		fine: '',
+		note: '',
 	});
+
+	// Mock data - in produzione verrebbe dal backend
+	const parcheggi = [
+		{ id: '1', nome: 'Parcheggio Centro' },
+		{ id: '2', nome: 'Parcheggio Stazione' },
+		{ id: '3', nome: 'Parcheggio Ospedale' },
+	];
+
+	const veicoli = [
+		{ id: '1', marca: 'Chevrolet', modello: 'Luffy', targa: 'TT 678 RR' },
+		{ id: '2', marca: 'Fiat', modello: '500', targa: 'AB 123 CD' },
+	];
 
 	const handleAutoChange = (e) => {
 		const { name, value } = e.target;
@@ -34,27 +47,47 @@ function Forum({ type = 'auto' }) {
 
 	const handleAutoSubmit = (e) => {
 		e.preventDefault();
-		console.log('Auto aggiunta:', formData);
-		// Reset form
-		setFormData({ marca: '', modello: '', targa: '', colore: '' });
+		console.log('Veicolo aggiunto:', formData);
+		setFormData({ targa: '', marca: '', modello: '', tipo: 'auto' });
 	};
 
 	const handleTicketSubmit = (e) => {
 		e.preventDefault();
-		console.log('Biglietto prenotato:', ticketData);
-		// Reset form
-		setTicketData({ tipoAbbonamento: 'orario', ore: '1', data: '', ora: '' });
+		console.log('Prenotazione creata:', ticketData);
+		setTicketData({
+			parcheggio_id: '',
+			veicolo_id: '',
+			inizio: '',
+			fine: '',
+			note: '',
+		});
 	};
 
 	return (
 		<div className="pp-forum">
 			{type === 'auto' && (
 				<form className="pp-forum__form pp-forum__form--auto" onSubmit={handleAutoSubmit}>
-					<h2 className="pp-forum__title">Aggiungi una Nuova Auto</h2>
+					<h2 className="pp-forum__title">Aggiungi un Veicolo</h2>
+
+					<div className="pp-forum__group">
+						<label className="pp-forum__label" htmlFor="targa">
+							Targa *
+						</label>
+						<input
+							className="pp-forum__input"
+							type="text"
+							id="targa"
+							name="targa"
+							value={formData.targa}
+							onChange={handleAutoChange}
+							placeholder="Es. TT 678 RR"
+							required
+						/>
+					</div>
 
 					<div className="pp-forum__group">
 						<label className="pp-forum__label" htmlFor="marca">
-							Marca
+							Marca *
 						</label>
 						<input
 							className="pp-forum__input"
@@ -70,7 +103,7 @@ function Forum({ type = 'auto' }) {
 
 					<div className="pp-forum__group">
 						<label className="pp-forum__label" htmlFor="modello">
-							Modello
+							Modello *
 						</label>
 						<input
 							className="pp-forum__input"
@@ -85,119 +118,123 @@ function Forum({ type = 'auto' }) {
 					</div>
 
 					<div className="pp-forum__group">
-						<label className="pp-forum__label" htmlFor="targa">
-							Targa
+						<label className="pp-forum__label" htmlFor="tipo">
+							Tipo di Veicolo *
 						</label>
-						<input
-							className="pp-forum__input"
-							type="text"
-							id="targa"
-							name="targa"
-							value={formData.targa}
+						<select
+							className="pp-forum__input pp-forum__select"
+							id="tipo"
+							name="tipo"
+							value={formData.tipo}
 							onChange={handleAutoChange}
-							placeholder="Es. TT 678 RR"
 							required
-						/>
-					</div>
-
-					<div className="pp-forum__group">
-						<label className="pp-forum__label" htmlFor="colore">
-							Colore
-						</label>
-						<input
-							className="pp-forum__input"
-							type="text"
-							id="colore"
-							name="colore"
-							value={formData.colore}
-							onChange={handleAutoChange}
-							placeholder="Es. Nero"
-						/>
+						>
+							<option value="auto">Auto</option>
+							<option value="moto">Moto</option>
+							<option value="furgone">Furgone</option>
+							<option value="camion">Camion</option>
+						</select>
 					</div>
 
 					<button className="pp-forum__submit" type="submit">
-						Aggiungi Auto
+						Aggiungi Veicolo
 					</button>
 				</form>
 			)}
 
 			{type === 'biglietto' && (
 				<form className="pp-forum__form pp-forum__form--ticket" onSubmit={handleTicketSubmit}>
-					<h2 className="pp-forum__title">Prenota un Biglietto</h2>
+					<h2 className="pp-forum__title">Prenota un Parcheggio</h2>
 
 					<div className="pp-forum__group">
-						<label className="pp-forum__label" htmlFor="tipoAbbonamento">
-							Tipo Biglietto
+						<label className="pp-forum__label" htmlFor="parcheggio_id">
+							Parcheggio *
 						</label>
 						<select
 							className="pp-forum__input pp-forum__select"
-							id="tipoAbbonamento"
-							name="tipoAbbonamento"
-							value={ticketData.tipoAbbonamento}
+							id="parcheggio_id"
+							name="parcheggio_id"
+							value={ticketData.parcheggio_id}
 							onChange={handleTicketChange}
+							required
 						>
-							<option value="orario">Orario</option>
-							<option value="giornaliero">Giornaliero</option>
-							<option value="settimanale">Settimanale</option>
-							<option value="mensile">Mensile</option>
+							<option value="">Seleziona un parcheggio</option>
+							{parcheggi.map((p) => (
+								<option key={p.id} value={p.id}>
+									{p.nome}
+								</option>
+							))}
 						</select>
 					</div>
 
-					{ticketData.tipoAbbonamento === 'orario' && (
-						<div className="pp-forum__group">
-							<label className="pp-forum__label" htmlFor="ore">
-								Ore
-							</label>
-							<select
-								className="pp-forum__input pp-forum__select"
-								id="ore"
-								name="ore"
-								value={ticketData.ore}
-								onChange={handleTicketChange}
-							>
-								<option value="1">1 Ora</option>
-								<option value="2">2 Ore</option>
-								<option value="3">3 Ore</option>
-								<option value="4">4 Ore</option>
-								<option value="6">6 Ore</option>
-								<option value="8">8 Ore</option>
-								<option value="12">12 Ore</option>
-							</select>
-						</div>
-					)}
+					<div className="pp-forum__group">
+						<label className="pp-forum__label" htmlFor="veicolo_id">
+							Veicolo *
+						</label>
+						<select
+							className="pp-forum__input pp-forum__select"
+							id="veicolo_id"
+							name="veicolo_id"
+							value={ticketData.veicolo_id}
+							onChange={handleTicketChange}
+							required
+						>
+							<option value="">Seleziona un veicolo</option>
+							{veicoli.map((v) => (
+								<option key={v.id} value={v.id}>
+									{v.marca} {v.modello} - {v.targa}
+								</option>
+							))}
+						</select>
+					</div>
 
 					<div className="pp-forum__group">
-						<label className="pp-forum__label" htmlFor="data">
-							Data
+						<label className="pp-forum__label" htmlFor="inizio">
+							Data e Ora Inizio *
 						</label>
 						<input
 							className="pp-forum__input"
-							type="date"
-							id="data"
-							name="data"
-							value={ticketData.data}
+							type="datetime-local"
+							id="inizio"
+							name="inizio"
+							value={ticketData.inizio}
 							onChange={handleTicketChange}
 							required
 						/>
 					</div>
 
 					<div className="pp-forum__group">
-						<label className="pp-forum__label" htmlFor="ora">
-							Ora Inizio
+						<label className="pp-forum__label" htmlFor="fine">
+							Data e Ora Fine *
 						</label>
 						<input
 							className="pp-forum__input"
-							type="time"
-							id="ora"
-							name="ora"
-							value={ticketData.ora}
+							type="datetime-local"
+							id="fine"
+							name="fine"
+							value={ticketData.fine}
 							onChange={handleTicketChange}
 							required
+						/>
+					</div>
+
+					<div className="pp-forum__group">
+						<label className="pp-forum__label" htmlFor="note">
+							Note
+						</label>
+						<textarea
+							className="pp-forum__input pp-forum__textarea"
+							id="note"
+							name="note"
+							value={ticketData.note}
+							onChange={handleTicketChange}
+							placeholder="Note aggiuntive..."
+							rows="3"
 						/>
 					</div>
 
 					<button className="pp-forum__submit" type="submit">
-						Prenota Biglietto
+						Prenota Parcheggio
 					</button>
 				</form>
 			)}
