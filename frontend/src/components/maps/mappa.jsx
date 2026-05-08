@@ -10,11 +10,10 @@ const LAST_POSITION_COOKIE = 'pp_last_position';
 const LOCATION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 const MIN_CITY_ZOOM = 12;
 
-// Mappa degli stati ai colori
 const parkingStateColors = {
-	disponibile: '#22c55e',  // Verde
-	occupato: '#ef4444',      // Rosso
-	chiuso: '#9b5cff',        // Viola
+	disponibile: '#22c55e',
+	occupato: '#ef4444',
+	chiuso: '#9b5cff',
 };
 
 const parkingLegend = [
@@ -24,47 +23,29 @@ const parkingLegend = [
 ];
 
 function getCookie(name) {
-	if (typeof document === 'undefined') {
-		return '';
-	}
-
+	if (typeof document === 'undefined') return '';
 	const prefix = `${name}=`;
 	const cookie = document.cookie.split('; ').find((entry) => entry.startsWith(prefix));
 	return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : '';
 }
 
 function setCookie(name, value, maxAgeSeconds = LOCATION_COOKIE_MAX_AGE) {
-	if (typeof document === 'undefined') {
-		return;
-	}
-
+	if (typeof document === 'undefined') return;
 	document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
 }
 
 function parseSavedPosition(rawValue) {
-	if (!rawValue) {
-		return null;
-	}
-
+	if (!rawValue) return null;
 	const [latitudeRaw, longitudeRaw, accuracyRaw] = rawValue.split(',');
 	const latitude = Number(latitudeRaw);
 	const longitude = Number(longitudeRaw);
 	const accuracy = Number(accuracyRaw);
-
-	if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-		return null;
-	}
-
-	return {
-		latitude,
-		longitude,
-		accuracy: Number.isFinite(accuracy) ? accuracy : 25,
-	};
+	if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+	return { latitude, longitude, accuracy: Number.isFinite(accuracy) ? accuracy : 25 };
 }
 
 function createParkingIcon(stato, label) {
 	const color = parkingStateColors[stato] || parkingStateColors.disponibile;
-
 	return L.divIcon({
 		className: 'pp-map-marker',
 		html: `<span class="pp-map-marker__pin" style="background:${color}">${label}</span>`,
@@ -80,6 +61,7 @@ function Mappa() {
 	const mapInstanceRef = useRef(null);
 	const parkingLayersRef = useRef([]);
 	const userLayerRef = useRef(null);
+
 	const [locationState, setLocationState] = useState(
 		consentCookie === 'granted' ? 'idle' : consentCookie === 'denied' ? 'dismissed' : 'prompt',
 	);
@@ -87,19 +69,17 @@ function Mappa() {
 	const [currentPosition, setCurrentPosition] = useState(() => parseSavedPosition(getCookie(LAST_POSITION_COOKIE)));
 	const [parcheggi, setParcheggi] = useState([]);
 	const [isLoadingParcheggi, setIsLoadingParcheggi] = useState(true);
-	const [mapCenter, setMapCenter] = useState([45.48245, 9.2057]); // Default Milan
+	const [mapCenter, setMapCenter] = useState([45.48245, 9.2057]);
 
 	const showConsentPopup = locationState === 'prompt';
 
-	// Fetch parcheggi dal backend
+	// Fetch parcheggi
 	useEffect(() => {
 		const fetchParcheggi = async () => {
 			setIsLoadingParcheggi(true);
 			try {
 				const parcheggiArray = await getParcheggi();
 				setParcheggi(parcheggiArray);
-
-				// Calcola il centro della mappa basato su tutti i parcheggi
 				if (parcheggiArray.length > 0) {
 					const validParcheggi = parcheggiArray.filter((p) => p.lat && p.lng);
 					if (validParcheggi.length > 0) {
@@ -114,15 +94,12 @@ function Mappa() {
 				setIsLoadingParcheggi(false);
 			}
 		};
-
 		fetchParcheggi();
 	}, []);
 
-	// Inizializza la mappa
+	// Inizializza mappa
 	useEffect(() => {
-		if (!mapNodeRef.current || mapInstanceRef.current) {
-			return undefined;
-		}
+		if (!mapNodeRef.current || mapInstanceRef.current) return undefined;
 
 		const map = L.map(mapNodeRef.current, {
 			zoomControl: false,
@@ -147,22 +124,16 @@ function Mappa() {
 		};
 	}, [mapCenter]);
 
-	// Aggiungi i marker dei parcheggi alla mappa
+	// Marker parcheggi
 	useEffect(() => {
 		const map = mapInstanceRef.current;
-		if (!map || parcheggi.length === 0) {
-			return;
-		}
+		if (!map || parcheggi.length === 0) return;
 
-		// Rimuovi i marker precedenti
 		parkingLayersRef.current.forEach((marker) => marker.remove());
 		parkingLayersRef.current = [];
 
-		// Aggiungi i nuovi marker
 		parcheggi.forEach((parcheggio) => {
-			if (!parcheggio.lat || !parcheggio.lng) {
-				return; // Salta i parcheggi senza coordinate
-			}
+			if (!parcheggio.lat || !parcheggio.lng) return;
 
 			const position = [parcheggio.lat, parcheggio.lng];
 			const label = parcheggio.nome.substring(0, 1).toUpperCase();
@@ -185,22 +156,17 @@ function Mappa() {
 		});
 	}, [parcheggi]);
 
-	// Gestisci la posizione dell'utente
+	// Posizione utente
 	useEffect(() => {
 		const map = mapInstanceRef.current;
-
-		if (!map) {
-			return undefined;
-		}
+		if (!map) return undefined;
 
 		if (userLayerRef.current) {
 			userLayerRef.current.remove();
 			userLayerRef.current = null;
 		}
 
-		if (!currentPosition) {
-			return undefined;
-		}
+		if (!currentPosition) return undefined;
 
 		const { latitude, longitude, accuracy } = currentPosition;
 		const position = [latitude, longitude];
@@ -232,6 +198,13 @@ function Mappa() {
 		};
 	}, [currentPosition]);
 
+	// Consenso cookie
+	useEffect(() => {
+		if (consentCookie === 'granted' && currentPosition) {
+			setLocationState('ready');
+		}
+	}, [consentCookie, currentPosition]);
+
 	const requestCurrentPosition = () => {
 		if (!navigator.geolocation) {
 			setLocationState('error');
@@ -249,36 +222,25 @@ function Mappa() {
 					longitude: position.coords.longitude,
 					accuracy: position.coords.accuracy,
 				};
-
 				setCurrentPosition(savedPosition);
 				setCookie(LOCATION_CONSENT_COOKIE, 'granted');
-				setCookie(
-					LAST_POSITION_COOKIE,
-					`${savedPosition.latitude},${savedPosition.longitude},${savedPosition.accuracy}`,
-				);
+				setCookie(LAST_POSITION_COOKIE, `${savedPosition.latitude},${savedPosition.longitude},${savedPosition.accuracy}`);
 				setLocationState('ready');
 			},
 			(error) => {
 				setCookie(LOCATION_CONSENT_COOKIE, 'denied');
 				setLocationState('error');
-				if (error.code === 1) {
-					setLocationError('Permesso negato. Puoi attivarlo dal browser e riprovare.');
-					return;
-				}
-
-				setLocationError('Impossibile ottenere la posizione in questo momento.');
+				setLocationError(
+					error.code === 1
+						? 'Permesso negato. Puoi attivarlo dal browser e riprovare.'
+						: 'Impossibile ottenere la posizione in questo momento.',
+				);
 			},
-			{
-				enableHighAccuracy: true,
-				timeout: 10000,
-				maximumAge: 0,
-			},
+			{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
 		);
 	};
 
-	const handleEnableLocation = () => {
-		requestCurrentPosition();
-	};
+	const handleEnableLocation = () => requestCurrentPosition();
 
 	const handleDismissLocation = () => {
 		setLocationState('dismissed');
@@ -286,26 +248,16 @@ function Mappa() {
 		setCookie(LOCATION_CONSENT_COOKIE, 'denied');
 	};
 
-	useEffect(() => {
-		if (consentCookie === 'granted' && currentPosition) {
-			setLocationState('ready');
-		}
-	}, [consentCookie, currentPosition]);
-
 	const handleGoToCurrentPosition = () => {
 		if (currentPosition && mapInstanceRef.current) {
 			mapInstanceRef.current.setView([currentPosition.latitude, currentPosition.longitude], 18, { animate: true });
 			return;
 		}
-
 		requestCurrentPosition();
 	};
 
 	const handleSearchSelect = (item) => {
-		if (!mapInstanceRef.current) {
-			return;
-		}
-
+		if (!mapInstanceRef.current) return;
 		mapInstanceRef.current.setView([item.latitude, item.longitude], 18, { animate: true });
 	};
 
@@ -321,39 +273,40 @@ function Mappa() {
 
 			<div className="pp-map-page__legend" aria-label="Legenda parcheggi">
 				{parkingLegend.map((item) => (
-				<div key={item.state} className="pp-map-page__legend-item">
+					<div key={item.state} className="pp-map-page__legend-item">
+						<span className="pp-map-page__legend-dot" style={{ backgroundColor: item.color }} aria-hidden="true" />
+						<span>{item.label}</span>
 					</div>
 				))}
 			</div>
 
-			<Search onSelect={handleSearchSelect} />
-
 			<div className="pp-map-page__map-card">
 				<div ref={mapNodeRef} className="pp-map-page__map" aria-label="Mappa reale con parcheggi" />
+				<Search onSelect={handleSearchSelect} />
 
-			{isLoadingParcheggi && (
-				<div className="pp-map-page__location-status">Caricamento parcheggi...</div>
-			)}
+				{isLoadingParcheggi && (
+					<div className="pp-map-page__location-status">Caricamento parcheggi...</div>
+				)}
 
-			<button type="button" className="pp-map-page__recenter-fab" onClick={handleGoToCurrentPosition} aria-label="Vai alla mia posizione">
-				<img
-					className="pp-map-page__recenter-icon"
-					src="https://www.svgrepo.com/show/535486/location-target.svg"
-					alt=""
-					aria-hidden="true"
-				/>
-			</button>
+				<button type="button" className="pp-map-page__recenter-fab" onClick={handleGoToCurrentPosition} aria-label="Vai alla mia posizione">
+					<img
+						className="pp-map-page__recenter-icon"
+						src="https://www.svgrepo.com/show/535486/location-target.svg"
+						alt=""
+						aria-hidden="true"
+					/>
+				</button>
 
-				{locationState === 'locating' ? (
+				{locationState === 'locating' && (
 					<div className="pp-map-page__location-status">Sto cercando la tua posizione...</div>
-				) : null}
+				)}
 
-				{locationState === 'error' && locationError ? (
+				{locationState === 'error' && locationError && (
 					<div className="pp-map-page__location-status is-error">{locationError}</div>
-				) : null}
+				)}
 			</div>
 
-			{showConsentPopup ? (
+			{showConsentPopup && (
 				<div className="pp-map-page__permission-backdrop" role="dialog" aria-modal="true" aria-label="Permesso posizione">
 					<div className="pp-map-page__permission-modal">
 						<p className="pp-map-page__permission-title">Vuoi attivare la geolocalizzazione?</p>
@@ -370,7 +323,7 @@ function Mappa() {
 						</div>
 					</div>
 				</div>
-			) : null}
+			)}
 		</section>
 	);
 }
