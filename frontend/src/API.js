@@ -90,3 +90,16 @@ export async function createPrenotazione(payload) {
 	});
 	return data.prenotazione;
 }
+
+export async function getUserById(userId) {
+	const data = await requestJson(`/api/users/${userId}`);
+	return data.user || null;
+}
+
+export async function updateUser(userId, payload) {
+	const data = await requestJson(`/api/users/${userId}`, {
+		method: 'PUT',
+		body: JSON.stringify(payload),
+	});
+	return data.user;
+}

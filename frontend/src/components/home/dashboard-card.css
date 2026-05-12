@@ -118,3 +118,62 @@
 .pp-dashboard-card__stop-button:active {
   transform: translateY(0) scale(0.98);
 }
+
+@media (max-width: 420px) {
+  .pp-dashboard-card {
+    padding: 0.62rem 0.74rem 0.66rem;
+    border-radius: 1.45rem;
+  }
+
+  .pp-dashboard-card__top {
+    gap: 0.3rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .pp-dashboard-card__vehicle.pp-vehicle {
+    width: 66px;
+    height: 46px;
+  }
+
+  .pp-dashboard-card__title {
+    font-size: 0.98rem;
+  }
+
+  .pp-dashboard-card__plate {
+    margin-top: 0.04rem;
+    font-size: 0.83rem;
+  }
+
+  .pp-dashboard-card__address-row {
+    margin: 0.25rem 0 0.4rem;
+  }
+
+  .pp-dashboard-card__address,
+  .pp-dashboard-card__parking-label,
+  .pp-dashboard-card__stop-button {
+    font-size: 0.82rem;
+  }
+
+  .pp-dashboard-card__address {
+    line-height: 1.02;
+  }
+
+  .pp-dashboard-card__bottom {
+    gap: 0.45rem;
+  }
+
+  .pp-dashboard-card__parking-type {
+    gap: 0.35rem;
+  }
+
+  .pp-dashboard-card__parking-badge {
+    width: 30px;
+    height: 30px;
+    font-size: 1.35rem;
+  }
+
+  .pp-dashboard-card__stop-button {
+    min-height: 28px;
+    padding: 0.32rem 0.82rem;
+  }
+}

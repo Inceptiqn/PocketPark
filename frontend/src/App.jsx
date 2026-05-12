@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import Menu from './components/home/menu';
 import Stats from './components/home/stats';
 import DashboardCard from './components/home/dashboard-card';
-import Mappa from './components/maps/mappa';
+import Mappa from './components/maps/mappa.jsx';
 import Biglietti from './components/biglietti/Biglietti';
 import Selector from './components/nuovo/selector';
 import Forum from './components/nuovo/forum';
+import ProfilePage from './components/profile/ProfilePage.jsx';
 import { getPrenotazioniByUtenteId, getUsers, getVeicoliByUtenteId } from './API';
 
 function PlaceholderPage({ title, subtitle }) {
@@ -126,13 +127,17 @@ function App() {
 								setSelectorType(option);
 							}}
 						/>
-						<Forum type={selectorType} />
+						<div className="add-page-content__forum-scroll">
+							<Forum type={selectorType} />
+						</div>
 					</div>
 				);
 			case 'cars':
 				return <PlaceholderPage title="Le Tue Auto" subtitle="Qui puoi gestire i tuoi veicoli." />;
 			case 'biglietti':
 				return <Biglietti />;
+			case 'profile':
+				return <ProfilePage />;
 			default:
 				return null;
 		}

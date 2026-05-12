@@ -1,0 +1,125 @@
+.pp-edit-profile-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(27, 27, 14, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1001;
+	animation: fadeIn 0.2s ease;
+}
+
+.pp-edit-profile-modal {
+	background: linear-gradient(180deg, #ececdc 0%, #e7e7d8 100%);
+	border: 1.5px solid #e2e2d3;
+	border-radius: 1.85rem;
+	width: 90%;
+	max-width: 380px;
+	padding: 1.8rem;
+	animation: slideUp 0.3s ease;
+	position: relative;
+	box-shadow: 0 10px 30px rgba(27, 27, 14, 0.2);
+}
+
+.pp-edit-profile-modal__close {
+	position: absolute;
+	top: 1.2rem;
+	right: 1.2rem;
+	width: 36px;
+	height: 36px;
+	border: 1px solid #d9d8c5;
+	background: #f4f4ef;
+	color: #1f2933;
+	font-size: 1.4rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	border-radius: 0.8rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.pp-edit-profile-modal__close:hover {
+	background: #ececdc;
+	transform: scale(1.1);
+}
+
+.pp-edit-profile-modal__title {
+	margin: 0 0 1.5rem;
+	font-size: 1.3rem;
+	font-weight: 600;
+	color: #1f2933;
+}
+
+.pp-edit-profile-modal__error {
+	background: rgba(211, 47, 47, 0.12);
+	border: 1px solid rgba(211, 47, 47, 0.3);
+	color: #d32f2f;
+	padding: 0.8rem 1rem;
+	border-radius: 1rem;
+	margin-bottom: 1rem;
+	font-size: 0.9rem;
+}
+
+.pp-edit-profile-modal__form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.pp-edit-profile-modal__group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.pp-edit-profile-modal__label {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: #1f2933;
+}
+
+.pp-edit-profile-modal__input {
+	background: #f4f4ef;
+	border: 1.5px solid #e2e2d3;
+	border-radius: 1rem;
+	padding: 0.7rem 1rem;
+	color: #1f2933;
+	font-size: 0.95rem;
+	transition: all 0.2s ease;
+}
+
+.pp-edit-profile-modal__input:focus {
+	outline: none;
+	background: white;
+	border-color: #55b9e3;
+	box-shadow: 0 0 0 3px rgba(85, 185, 227, 0.15);
+}
+
+.pp-edit-profile-modal__submit {
+	background: linear-gradient(180deg, #dddcc5 0%, #d9d8bf 100%);
+	color: #1f2933;
+	border: 1.5px solid rgba(60, 60, 60, 0.65);
+	padding: 0.8rem 1.5rem;
+	border-radius: 1rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	margin-top: 0.5rem;
+	box-shadow: 0 6px 14px rgba(25, 25, 25, 0.1);
+}
+
+.pp-edit-profile-modal__submit:hover:not(:disabled) {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 20px rgba(25, 25, 25, 0.15);
+	background: linear-gradient(180deg, #d5d4b8 0%, #d1cfb2 100%);
+}
+
+.pp-edit-profile-modal__submit:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

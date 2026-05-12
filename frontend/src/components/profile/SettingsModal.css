@@ -1,0 +1,153 @@
+.pp-settings-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(27, 27, 14, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.pp-settings-modal {
+	background: linear-gradient(180deg, #ececdc 0%, #e7e7d8 100%);
+	border: 1.5px solid #e2e2d3;
+	border-radius: 1.85rem;
+	width: 90%;
+	max-width: 520px;
+	max-height: 75vh;
+	display: flex;
+	flex-direction: column;
+	animation: slideUp 0.3s ease;
+	position: relative;
+	box-shadow: 0 10px 30px rgba(27, 27, 14, 0.2);
+}
+
+@keyframes slideUp {
+	from {
+		transform: translateY(30px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+.pp-settings-modal__close {
+	position: absolute;
+	top: 1.2rem;
+	right: 1.2rem;
+	width: 36px;
+	height: 36px;
+	border: 1px solid #d9d8c5;
+	background: #f4f4ef;
+	color: #1f2933;
+	font-size: 1.4rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	z-index: 10;
+	border-radius: 0.8rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.pp-settings-modal__close:hover {
+	background: #ececdc;
+	transform: scale(1.1);
+}
+
+.pp-settings-modal__layout {
+	display: flex;
+	gap: 1px;
+	height: 100%;
+	overflow: hidden;
+}
+
+.pp-settings-modal__menu {
+	width: 140px;
+	border-right: 1.5px solid #e2e2d3;
+	overflow-y: auto;
+	padding: 1.2rem 0;
+	background: linear-gradient(180deg, #f2f2ed 0%, #ececdc 100%);
+}
+
+.pp-settings-modal__title {
+	margin: 0 1rem 1.2rem;
+	font-size: 1rem;
+	font-weight: 700;
+	color: #1f2933;
+}
+
+.pp-settings-modal__nav {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.pp-settings-modal__menu-item {
+	background: none;
+	border: none;
+	color: #3f3f35;
+	text-align: left;
+	padding: 0.7rem 1rem;
+	cursor: pointer;
+	font-size: 0.85rem;
+	transition: all 0.2s ease;
+	position: relative;
+	white-space: nowrap;
+}
+
+.pp-settings-modal__menu-item:hover {
+	color: #101010;
+	background: rgba(85, 185, 227, 0.15);
+}
+
+.pp-settings-modal__menu-item--active {
+	color: #16313f;
+	background: #55b9e3;
+	border-left: none;
+	font-weight: 600;
+}
+
+.pp-settings-modal__view {
+	flex: 1;
+	padding: 1.8rem;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.pp-settings-modal__placeholder {
+	text-align: center;
+	color: #a0a099;
+	font-size: 0.95rem;
+}
+
+.pp-settings-modal__content-title {
+	margin: 0 0 1rem;
+	font-size: 1.2rem;
+	font-weight: 600;
+	color: #1f2933;
+}
+
+.pp-settings-modal__content-text {
+	margin: 0;
+	color: #3f3f35;
+	line-height: 1.6;
+	font-size: 0.9rem;
+}
