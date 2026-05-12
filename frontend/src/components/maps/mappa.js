@@ -83,6 +83,7 @@ export function useMappaController() {
 	const searchMarkerRef = useRef(null);
 	const hasAutoCenteredRef = useRef(false);
 	const locateRequestRef = useRef(0);
+	const watchIdRef = useRef(null);
 
 	const [parcheggi, setParcheggi] = useState([]);
 	const [isLoadingParcheggi, setIsLoadingParcheggi] = useState(true);
@@ -128,6 +129,9 @@ export function useMappaController() {
 
 	useEffect(() => {
 		if (!mapNodeRef.current || mapRef.current) return;
+		userMarkerRef.current = null;
+		accuracyCircleRef.current = null;
+		searchMarkerRef.current = null;
 
 		const map = L.map(mapNodeRef.current, {
 			zoomControl: true,
@@ -156,6 +160,9 @@ export function useMappaController() {
 			map.remove();
 			mapRef.current = null;
 			markersLayerRef.current = null;
+			userMarkerRef.current = null;
+			accuracyCircleRef.current = null;
+			searchMarkerRef.current = null;
 		};
 	}, [initialLocation, updateUserLocation]);
 
@@ -221,61 +228,113 @@ export function useMappaController() {
 		}
 	}, [parcheggi]);
 
-	const requestLocation = useCallback(() => {
-		if (!navigator?.geolocation) {
-			setLocationState('error');
-			setLocationError('Geolocalizzazione non disponibile.');
-			return;
-		}
+	const updateFromPosition = useCallback(
+		(position, { recenter } = {}) => {
+			const location = {
+				lat: position.coords.latitude,
+				lng: position.coords.longitude,
+				accuracy: position.coords.accuracy,
+				timestamp: position.timestamp,
+			};
+			const shouldRecenter = recenter || !userMarkerRef.current;
 
-		const requestId = locateRequestRef.current + 1;
-		locateRequestRef.current = requestId;
-		setLocationState('locating');
-		setLocationError('');
+			setLocationState('ready');
+			setLocationError('');
+			writeStoredLocation(location);
+			updateUserLocation(location);
 
-		navigator.geolocation.getCurrentPosition(
-			(position) => {
-				if (locateRequestRef.current !== requestId) return;
-				const location = {
-					lat: position.coords.latitude,
-					lng: position.coords.longitude,
-					accuracy: position.coords.accuracy,
-					timestamp: position.timestamp,
-				};
+			if (mapRef.current && shouldRecenter) {
+				mapRef.current.setView([location.lat, location.lng], 16);
+			}
+		},
+		[updateUserLocation]
+	);
 
-				setLocationState('ready');
-				setLocationError('');
-				writeStoredLocation(location);
-				updateUserLocation(location);
-
-				if (mapRef.current) {
-					mapRef.current.setView([location.lat, location.lng], 16);
-				}
-			},
-			(error) => {
-				if (locateRequestRef.current !== requestId) return;
+	const requestLocation = useCallback(
+		({ recenter = true } = {}) => {
+			if (!navigator?.geolocation) {
 				setLocationState('error');
-				setLocationError(getLocationErrorMessage(error));
-			},
-			{ enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 }
-		);
-	}, [updateUserLocation]);
+				setLocationError('Geolocalizzazione non disponibile.');
+				return;
+			}
+
+			const requestId = locateRequestRef.current + 1;
+			locateRequestRef.current = requestId;
+			setLocationState('locating');
+			setLocationError('');
+
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					if (locateRequestRef.current !== requestId) return;
+					updateFromPosition(position, { recenter });
+				},
+				(error) => {
+					if (locateRequestRef.current !== requestId) return;
+					setLocationState('error');
+					setLocationError(getLocationErrorMessage(error));
+				},
+				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+			);
+		},
+		[updateFromPosition]
+	);
+
+	const startLocationWatch = useCallback(
+		({ recenter = false } = {}) => {
+			if (!navigator?.geolocation) {
+				setLocationState('error');
+				setLocationError('Geolocalizzazione non disponibile.');
+				return;
+			}
+
+			if (watchIdRef.current !== null) return;
+
+			const requestId = locateRequestRef.current + 1;
+			locateRequestRef.current = requestId;
+			setLocationState('locating');
+			setLocationError('');
+
+			watchIdRef.current = navigator.geolocation.watchPosition(
+				(position) => {
+					if (locateRequestRef.current !== requestId) return;
+					updateFromPosition(position, { recenter });
+				},
+				(error) => {
+					if (locateRequestRef.current !== requestId) return;
+					setLocationState('error');
+					setLocationError(getLocationErrorMessage(error));
+				},
+				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+			);
+		},
+		[updateFromPosition]
+	);
+
+	const stopLocationWatch = useCallback(() => {
+		if (watchIdRef.current !== null && navigator?.geolocation) {
+			navigator.geolocation.clearWatch(watchIdRef.current);
+			watchIdRef.current = null;
+		}
+	}, []);
 
 	const handleEnableLocation = useCallback(() => {
 		setLocationConsent('granted');
 		setShowConsentPopup(false);
-		requestLocation();
-	}, [requestLocation]);
+		requestLocation({ recenter: true });
+		startLocationWatch({ recenter: false });
+	}, [requestLocation, startLocationWatch]);
 
 	const handleDismissLocation = useCallback(() => {
 		setLocationConsent('denied');
 		setShowConsentPopup(false);
-	}, []);
+		stopLocationWatch();
+	}, [stopLocationWatch]);
 
 	const handleGoToCurrentPosition = useCallback(() => {
 		const consent = getLocationConsent();
 		if (consent === 'granted') {
-			requestLocation();
+			requestLocation({ recenter: true });
+			startLocationWatch({ recenter: false });
 			return;
 		}
 		if (consent === 'denied') {
@@ -284,7 +343,7 @@ export function useMappaController() {
 			return;
 		}
 		setShowConsentPopup(true);
-	}, [requestLocation]);
+	}, [requestLocation, startLocationWatch]);
 
 	const handleSearchSelect = useCallback((item) => {
 		if (!item || !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) return;
@@ -312,6 +371,17 @@ export function useMappaController() {
 			setShowConsentPopup(true);
 		}
 	}, [initialLocation]);
+
+	useEffect(() => {
+		const consent = getLocationConsent();
+		if (consent === 'granted') {
+			startLocationWatch({ recenter: !initialLocation });
+		}
+
+		return () => {
+			stopLocationWatch();
+		};
+	}, [initialLocation, startLocationWatch, stopLocationWatch]);
 
 	return {
 		mapNodeRef,

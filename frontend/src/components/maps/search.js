@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const SEARCH_DEBOUNCE_MS = 150;
-const SEARCH_LIMIT = 5;
+const SEARCH_DEBOUNCE_MS = 350;
+const MIN_REQUEST_INTERVAL_MS = 700;
+const SEARCH_LIMIT = 8;
 const SEARCH_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
 const PHOTON_ENDPOINT = 'https://photon.komoot.io/api/';
 
@@ -16,6 +17,8 @@ function buildSearchUrl(query) {
 		addressdetails: '1',
 		limit: String(SEARCH_LIMIT),
 		'accept-language': 'it',
+		countrycodes: 'it',
+		dedupe: '1',
 	});
 
 	return `${SEARCH_ENDPOINT}?${params.toString()}`;
@@ -91,12 +94,84 @@ export function useSearchController({ onSelect } = {}) {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const debounceRef = useRef(null);
+	const scheduledRef = useRef(null);
 	const controllerRef = useRef(null);
 	const requestRef = useRef(0);
 	const cacheRef = useRef(new Map());
+	const lastRequestAtRef = useRef(0);
+	const pendingQueryRef = useRef('');
+
+	const performSearch = useCallback(async (searchText) => {
+		const requestId = requestRef.current + 1;
+		requestRef.current = requestId;
+		lastRequestAtRef.current = Date.now();
+
+		if (controllerRef.current) {
+			controllerRef.current.abort();
+		}
+
+		const controller = new AbortController();
+		controllerRef.current = controller;
+
+		setLoading(true);
+		setError('');
+
+		try {
+			const response = await fetch(buildPhotonUrl(searchText), {
+				signal: controller.signal,
+				headers: { 'Accept-Language': 'it' },
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
+
+			const data = await response.json();
+			const mapped = mapPhotonResults(data);
+
+			if (requestRef.current !== requestId) return;
+
+			setResults(mapped);
+			cacheRef.current.set(searchText.toLowerCase(), mapped);
+			setError(mapped.length === 0 ? 'Nessun risultato. Prova a inserire anche citta o CAP.' : '');
+		} catch (fetchError) {
+			if (fetchError?.name === 'AbortError') return;
+
+			try {
+				const fallbackResponse = await fetch(buildSearchUrl(searchText), {
+					signal: controller.signal,
+					headers: { 'Accept-Language': 'it' },
+				});
+
+				if (!fallbackResponse.ok) {
+					throw new Error(`HTTP ${fallbackResponse.status}`);
+				}
+
+				const fallbackData = await fallbackResponse.json();
+				const mapped = mapResults(fallbackData);
+
+				if (requestRef.current !== requestId) return;
+
+				setResults(mapped);
+				cacheRef.current.set(searchText.toLowerCase(), mapped);
+				setError(mapped.length === 0 ? 'Nessun risultato. Prova a inserire anche citta o CAP.' : '');
+			} catch (fallbackError) {
+				if (fallbackError?.name === 'AbortError') return;
+				if (requestRef.current === requestId) {
+					setResults([]);
+					setError('Errore di rete durante la ricerca.');
+				}
+			}
+		} finally {
+			if (requestRef.current === requestId) {
+				setLoading(false);
+			}
+		}
+	}, []);
 
 	const runSearch = useCallback(async (rawQuery) => {
 		const searchText = normalizeQuery(rawQuery);
+		pendingQueryRef.current = searchText;
 
 		if (!searchText) {
 			setResults([]);
@@ -120,71 +195,22 @@ export function useSearchController({ onSelect } = {}) {
 			return;
 		}
 
-		const requestId = requestRef.current + 1;
-		requestRef.current = requestId;
-
-		if (controllerRef.current) {
-			controllerRef.current.abort();
+		const now = Date.now();
+		const elapsed = now - lastRequestAtRef.current;
+		if (elapsed < MIN_REQUEST_INTERVAL_MS) {
+			if (scheduledRef.current) {
+				window.clearTimeout(scheduledRef.current);
+			}
+			setLoading(true);
+			scheduledRef.current = window.setTimeout(() => {
+				if (pendingQueryRef.current !== searchText) return;
+				performSearch(searchText);
+			}, MIN_REQUEST_INTERVAL_MS - elapsed);
+			return;
 		}
 
-		const controller = new AbortController();
-		controllerRef.current = controller;
-
-		setLoading(true);
-		setError('');
-
-		try {
-			const response = await fetch(buildSearchUrl(searchText), {
-				signal: controller.signal,
-				headers: { 'Accept-Language': 'it' },
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
-			}
-
-			const data = await response.json();
-			const mapped = mapResults(data);
-
-			if (requestRef.current !== requestId) return;
-
-			setResults(mapped);
-			cacheRef.current.set(searchText.toLowerCase(), mapped);
-			setError(mapped.length === 0 ? 'Nessun risultato. Prova a inserire anche citta o CAP.' : '');
-		} catch (fetchError) {
-			if (fetchError?.name === 'AbortError') return;
-
-			try {
-				const photonResponse = await fetch(buildPhotonUrl(searchText), {
-					signal: controller.signal,
-					headers: { 'Accept-Language': 'it' },
-				});
-
-				if (!photonResponse.ok) {
-					throw new Error(`HTTP ${photonResponse.status}`);
-				}
-
-				const photonData = await photonResponse.json();
-				const mapped = mapPhotonResults(photonData);
-
-				if (requestRef.current !== requestId) return;
-
-				setResults(mapped);
-				cacheRef.current.set(searchText.toLowerCase(), mapped);
-				setError(mapped.length === 0 ? 'Nessun risultato. Prova a inserire anche citta o CAP.' : '');
-			} catch (fallbackError) {
-				if (fallbackError?.name === 'AbortError') return;
-				if (requestRef.current === requestId) {
-					setResults([]);
-					setError('Errore di rete durante la ricerca.');
-				}
-			}
-		} finally {
-			if (requestRef.current === requestId) {
-				setLoading(false);
-			}
-		}
-	}, []);
+		performSearch(searchText);
+	}, [performSearch]);
 
 	useEffect(() => {
 		if (debounceRef.current) {
@@ -216,6 +242,9 @@ export function useSearchController({ onSelect } = {}) {
 		return () => {
 			if (controllerRef.current) {
 				controllerRef.current.abort();
+			}
+			if (scheduledRef.current) {
+				window.clearTimeout(scheduledRef.current);
 			}
 		};
 	}, []);
