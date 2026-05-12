@@ -8,6 +8,9 @@ import Biglietti from './components/biglietti/Biglietti';
 import Selector from './components/nuovo/selector';
 import Forum from './components/nuovo/forum';
 import ProfilePage from './components/profile/ProfilePage.jsx';
+import LoginPage from './components/auth/LoginPage';
+import RegisterPage from './components/auth/RegisterPage';
+import { isLoggedIn, getBaseUrl } from './utils';
 import { getPrenotazioniByUtenteId, getUsers, getVeicoliByUtenteId } from './API';
 
 function PlaceholderPage({ title, subtitle }) {
@@ -60,6 +63,15 @@ function App() {
 		};
 	}, []);
 
+	const [authenticated, setAuthenticated] = useState(() => {
+		try {
+			return isLoggedIn();
+		} catch (e) {
+			return false;
+		}
+	});
+	const [authView, setAuthView] = useState('login');
+
 	const activePrenotazione = useMemo(() => {
 		const now = new Date();
 		return prenotazioni.find((item) => {
@@ -83,6 +95,10 @@ function App() {
 	}, [prenotazioni]);
 
 	const renderPage = () => {
+		if (!authenticated) {
+			return <LoginPage onLogin={() => setAuthenticated(true)} />;
+		}
+
 		switch (activeItem) {
 			case 'home':
 				return (
@@ -142,6 +158,19 @@ function App() {
 				return null;
 		}
 	};
+
+	if (!authenticated) {
+		return (
+			<main className="app-shell">
+				<div className="phone-screen auth-mode">
+					<div className="phone-page">
+						{authView === 'login' && <LoginPage onLogin={() => setAuthenticated(true)} onSwitchToRegister={() => setAuthView('register')} />}
+						{authView === 'register' && <RegisterPage onRegistered={() => setAuthenticated(true)} onCancel={() => setAuthView('login')} />}
+					</div>
+				</div>
+			</main>
+		);
+	}
 
 	return (
 		<main className="app-shell">

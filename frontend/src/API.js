@@ -75,6 +75,33 @@ export function getCurrentUserId() {
 	return localStorage.getItem(USER_ID_STORAGE_KEY) || '';
 }
 
+export async function login(email, password) {
+	const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ email, password }),
+	});
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		throw new Error(body.error || `login failed ${res.status}`);
+	}
+	const data = await res.json();
+	localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.token);
+	localStorage.setItem(USER_ID_STORAGE_KEY, data.user.id);
+	return data.user;
+}
+
+export function logout() {
+	localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+	localStorage.removeItem(USER_ID_STORAGE_KEY);
+}
+
+export async function validateToken(token) {
+	const res = await fetch(`${getBaseUrl()}/api/auth/validate?token=${encodeURIComponent(token)}`);
+	if (!res.ok) return { valid: false };
+	return res.json();
+}
+
 export async function createVeicolo(payload) {
 	const data = await requestJson('/api/veicoli', {
 		method: 'POST',
@@ -99,6 +126,14 @@ export async function getUserById(userId) {
 export async function updateUser(userId, payload) {
 	const data = await requestJson(`/api/users/${userId}`, {
 		method: 'PUT',
+		body: JSON.stringify(payload),
+	});
+	return data.user;
+}
+
+export async function createUser(payload) {
+	const data = await requestJson('/api/users', {
+		method: 'POST',
 		body: JSON.stringify(payload),
 	});
 	return data.user;

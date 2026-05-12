@@ -6,11 +6,13 @@ from routes.roles import roles_bp
 from routes.tariffe import tariffe_bp
 from routes.users import users_bp
 from routes.veicoli import veicoli_bp
+from routes.auth import auth_bp
 
 
 def register_routes(app):
 	app.register_blueprint(health_bp)
 	app.register_blueprint(roles_bp)
+	app.register_blueprint(auth_bp)
 	app.register_blueprint(users_bp)
 	app.register_blueprint(veicoli_bp)
 	app.register_blueprint(parcheggi_bp)
