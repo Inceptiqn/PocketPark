@@ -1,56 +1,76 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ProfileHeader from './ProfileHeader';
 import VehicleCard from './VehicleCard';
-import SettingsButton from './SettingsButton';
 import SettingsModal from './SettingsModal';
 import EditProfileModal from './EditProfileModal';
+import { getCurrentUserId, getUserById, getVeicoliByUtenteId } from '../../API';
 import './ProfilePage.css';
 
-// Mock data
-const mockUser = {
-	id: '550e8400-e29b-41d4-a716-446655440000',
-	nome: 'Marco',
-	cognome: 'Rossi',
-	email: 'marco.rossi@example.com',
-	role_id: 2,
-	is_active: true,
-	created_at: '2025-01-15T10:30:00Z',
-	updated_at: '2025-01-15T10:30:00Z',
-};
-
-const mockVeicoli = [
-	{
-		id: '660e8400-e29b-41d4-a716-446655440001',
-		utente_id: '550e8400-e29b-41d4-a716-446655440000',
-		targa: 'BG123CD',
-		marca: 'Fiat',
-		modello: 'Panda',
-		tipo: 'auto',
-	},
-	{
-		id: '660e8400-e29b-41d4-a716-446655440002',
-		utente_id: '550e8400-e29b-41d4-a716-446655440000',
-		targa: 'BS456EF',
-		marca: 'Vespa',
-		modello: 'Primavera',
-		tipo: 'scooter',
-	},
-];
-
 export default function ProfilePage() {
-	const [user, setUser] = useState(mockUser);
-	const [veicoli, setVeicoli] = useState(mockVeicoli);
+	const [user, setUser] = useState(null);
+	const [veicoli, setVeicoli] = useState([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState('');
 	const [showSettingsModal, setShowSettingsModal] = useState(false);
 	const [showEditModal, setShowEditModal] = useState(false);
 
-	async function handleUpdateUser(updates) {
-		// Mock update - in future: await updateUser(user.id, updates)
-		setUser({ ...user, ...updates });
+	useEffect(() => {
+		let isMounted = true;
+		const loadProfile = async () => {
+			const userId = getCurrentUserId();
+			if (!userId) {
+				if (isMounted) {
+					setUser(null);
+					setVeicoli([]);
+					setIsLoading(false);
+				}
+				return;
+			}
+			try {
+				const [userData, veicoliData] = await Promise.all([
+					getUserById(userId),
+					getVeicoliByUtenteId(userId),
+				]);
+				if (isMounted) {
+					setUser(userData);
+					setVeicoli(veicoliData);
+				}
+			} catch (err) {
+				console.error('Errore nel caricamento profilo:', err);
+				if (isMounted) {
+					setError('Impossibile caricare il profilo.');
+				}
+			} finally {
+				if (isMounted) {
+					setIsLoading(false);
+				}
+			}
+		};
+
+		loadProfile();
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
+	async function handleUpdateUser(updatedUser) {
+		if (updatedUser) {
+			setUser(updatedUser);
+		}
 		setShowEditModal(false);
 	}
 
 	return (
 		<div className="pp-profile-page">
+			{isLoading && (
+				<p className="pp-profile-page__empty">Caricamento profilo...</p>
+			)}
+			{!isLoading && error && (
+				<p className="pp-profile-page__empty">{error}</p>
+			)}
+			{!isLoading && !error && !user && (
+				<p className="pp-profile-page__empty">Nessun utente trovato. Effettua il login.</p>
+			)}
 			{user && (
 				<ProfileHeader
 					user={user}

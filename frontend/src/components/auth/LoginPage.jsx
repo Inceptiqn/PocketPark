@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './LoginPage.css';
-import { getBaseUrl } from '../../utils';
+import { login } from '../../API';
 
 export default function LoginPage({ onLogin, onSwitchToRegister }) {
 	const [email, setEmail] = useState('');
@@ -13,24 +13,10 @@ export default function LoginPage({ onLogin, onSwitchToRegister }) {
 		setError(null);
 		setLoading(true);
 		try {
-			const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, password }),
-			});
-			if (!res.ok) {
-				const body = await res.json().catch(() => ({}));
-				setError(body.error || 'Errore di autenticazione');
-				setLoading(false);
-				return;
-			}
-			const data = await res.json();
-			// store token + user id
-			localStorage.setItem('pp_auth_token', data.token);
-			localStorage.setItem('pp_user_id', data.user.id);
-			if (onLogin) onLogin(data.user);
+			const user = await login(email, password);
+			if (onLogin) onLogin(user);
 		} catch (err) {
-			setError('Connessione fallita');
+			setError(err.message || 'Connessione fallita');
 		} finally {
 			setLoading(false);
 		}

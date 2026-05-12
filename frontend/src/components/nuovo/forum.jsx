@@ -5,7 +5,7 @@ import {
 	createVeicolo,
 	getParcheggi,
 	getTariffe,
-	getUsers,
+	getCurrentUserId,
 	getVeicoliByUtenteId,
 } from '../../API';
 
@@ -36,18 +36,20 @@ function Forum({ type = 'auto' }) {
 	const isTicketDisabled = !hasUser || !ticketData.tariffa_id;
 
 	useEffect(() => {
+		setCurrentUserId(getCurrentUserId());
+	}, []);
+
+	useEffect(() => {
 		let isMounted = true;
 		const loadData = async () => {
 			try {
-				const [parcheggiData, tariffeData, usersData] = await Promise.all([
+				const [parcheggiData, tariffeData] = await Promise.all([
 					getParcheggi(),
 					getTariffe(),
-					getUsers(),
 				]);
 				if (isMounted) {
 					setParcheggi(parcheggiData);
 					setTariffe(tariffeData);
-					setCurrentUserId(usersData[0]?.id || '');
 				}
 			} catch (error) {
 				console.error('Errore nel caricamento dati:', error);

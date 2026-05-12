@@ -1,251 +1,317 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getParcheggi } from '../../API';
 
-const LOCATION_CONSENT_COOKIE = 'pp_location_consent';
-const MIN_CITY_ZOOM = 12;
-const DEFAULT_CENTER = [45.48245, 9.2057];
+const DEFAULT_CENTER = [45.4642, 9.19];
+const DEFAULT_ZOOM = 13;
+const LOCATION_CONSENT_KEY = 'pp_location_consent';
+const LAST_LOCATION_KEY = 'pp_last_location';
 
-const parkingStateColors = {
-	disponibile: '#22c55e',
-	occupato: '#ef4444',
-	chiuso: '#9b5cff',
+const parkingStatusConfig = {
+	disponibile: { label: 'Disponibile', color: '#2b7cff', pinLabel: 'P' },
+	occupato: { label: 'Occupato', color: '#d92d20', pinLabel: 'X' },
+	chiuso: { label: 'Chiuso', color: '#6b7280', pinLabel: '!' },
 };
 
-export const parkingLegend = [
-	{ state: 'disponibile', label: 'Disponibili', color: parkingStateColors.disponibile },
-	{ state: 'occupato', label: 'Occupati', color: parkingStateColors.occupato },
-	{ state: 'chiuso', label: 'Chiusi', color: parkingStateColors.chiuso },
-];
+export const parkingLegend = Object.entries(parkingStatusConfig).map(([state, config]) => ({
+	state,
+	label: config.label,
+	color: config.color,
+}));
 
-function getCookie(name) {
-	if (typeof document === 'undefined') return '';
-	const prefix = `${name}=`;
-	const cookie = document.cookie.split('; ').find((entry) => entry.startsWith(prefix));
-	return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : '';
-}
-
-function setCookie(name, value) {
-	if (typeof document === 'undefined') return;
-	document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
-}
-
-function createParkingIcon(stato, label) {
-	const color = parkingStateColors[stato] || parkingStateColors.disponibile;
+function buildParkingIcon({ color, pinLabel }) {
 	return L.divIcon({
 		className: 'pp-map-marker',
-		html: `<span class="pp-map-marker__pin" style="background:${color}">${label}</span>`,
+		html: `<div class="pp-map-marker__pin" style="background:${color}"><span>${pinLabel}</span></div>`,
 		iconSize: [42, 42],
-		iconAnchor: [21, 42],
-		popupAnchor: [0, -38],
+		iconAnchor: [16, 34],
+		popupAnchor: [0, -32],
 	});
+}
+
+function formatParcheggioAddress(parcheggio) {
+	return [parcheggio.via, parcheggio.citta, parcheggio.cap].filter(Boolean).join(', ');
+}
+
+function readStoredLocation() {
+	if (typeof window === 'undefined') return null;
+	try {
+		const raw = localStorage.getItem(LAST_LOCATION_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		if (!Number.isFinite(parsed?.lat) || !Number.isFinite(parsed?.lng)) return null;
+		return parsed;
+	} catch (error) {
+		return null;
+	}
+}
+
+function writeStoredLocation(location) {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify(location));
+	} catch (error) {
+		// Ignore storage errors.
+	}
+}
+
+function getLocationConsent() {
+	if (typeof window === 'undefined') return null;
+	return localStorage.getItem(LOCATION_CONSENT_KEY);
+}
+
+function setLocationConsent(value) {
+	if (typeof window === 'undefined') return;
+	localStorage.setItem(LOCATION_CONSENT_KEY, value);
+}
+
+function getLocationErrorMessage(error) {
+	if (!error) return 'Errore durante la geolocalizzazione.';
+	if (error.code === 1) return 'Permesso di geolocalizzazione negato.';
+	if (error.code === 2) return 'Posizione non disponibile.';
+	if (error.code === 3) return 'Timeout della geolocalizzazione.';
+	return 'Errore durante la geolocalizzazione.';
 }
 
 export function useMappaController() {
 	const mapNodeRef = useRef(null);
-	const mapInstanceRef = useRef(null);
-	const parkingLayerRef = useRef(L.layerGroup());
-	const userLayerRef = useRef(null);
-	const watchIdRef = useRef(null);
+	const mapRef = useRef(null);
+	const markersLayerRef = useRef(null);
+	const userMarkerRef = useRef(null);
+	const accuracyCircleRef = useRef(null);
+	const searchMarkerRef = useRef(null);
+	const hasAutoCenteredRef = useRef(false);
+	const locateRequestRef = useRef(0);
 
-	const [locationState, setLocationState] = useState(() => {
-		const consent = getCookie(LOCATION_CONSENT_COOKIE);
-		return consent === 'granted' ? 'granted' : consent === 'denied' ? 'dismissed' : 'prompt';
-	});
-	const [locationError, setLocationError] = useState('');
-	const [currentPosition, setCurrentPosition] = useState(null);
 	const [parcheggi, setParcheggi] = useState([]);
 	const [isLoadingParcheggi, setIsLoadingParcheggi] = useState(true);
-	const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+	const [locationState, setLocationState] = useState('idle');
+	const [locationError, setLocationError] = useState('');
+	const [showConsentPopup, setShowConsentPopup] = useState(false);
 
-	const showConsentPopup = locationState === 'prompt';
+	const initialLocation = useMemo(() => readStoredLocation(), []);
+
+	const updateUserLocation = useCallback((location, mapInstance) => {
+		const map = mapInstance || mapRef.current;
+		if (!map) return;
+
+		const latLng = [location.lat, location.lng];
+		if (!userMarkerRef.current) {
+			userMarkerRef.current = L.circleMarker(latLng, {
+				radius: 7,
+				color: '#1d4ed8',
+				weight: 2,
+				fillColor: '#3b82f6',
+				fillOpacity: 0.9,
+			}).addTo(map);
+		} else {
+			userMarkerRef.current.setLatLng(latLng);
+		}
+
+		const accuracy = Number.isFinite(location.accuracy) ? location.accuracy : 0;
+		if (accuracy > 0) {
+			if (!accuracyCircleRef.current) {
+				accuracyCircleRef.current = L.circle(latLng, {
+					radius: accuracy,
+					color: '#60a5fa',
+					weight: 1,
+					fillColor: '#93c5fd',
+					fillOpacity: 0.2,
+				}).addTo(map);
+			} else {
+				accuracyCircleRef.current.setLatLng(latLng);
+				accuracyCircleRef.current.setRadius(accuracy);
+			}
+		}
+	}, []);
 
 	useEffect(() => {
+		if (!mapNodeRef.current || mapRef.current) return;
+
+		const map = L.map(mapNodeRef.current, {
+			zoomControl: true,
+			attributionControl: true,
+		}).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; OpenStreetMap contributors',
+			maxZoom: 19,
+		}).addTo(map);
+
+		markersLayerRef.current = L.layerGroup().addTo(map);
+		mapRef.current = map;
+
+		if (initialLocation?.lat && initialLocation?.lng) {
+			map.setView([initialLocation.lat, initialLocation.lng], 15);
+			updateUserLocation(initialLocation, map);
+			hasAutoCenteredRef.current = true;
+		}
+
+		requestAnimationFrame(() => {
+			map.invalidateSize();
+		});
+
+		return () => {
+			map.remove();
+			mapRef.current = null;
+			markersLayerRef.current = null;
+		};
+	}, [initialLocation, updateUserLocation]);
+
+	useEffect(() => {
+		let isMounted = true;
+
 		const loadParcheggi = async () => {
+			setIsLoadingParcheggi(true);
 			try {
 				const data = await getParcheggi();
-				const valid = Array.isArray(data) ? data.filter((item) => item?.lat && item?.lng) : [];
-				setParcheggi(valid);
-
-				if (valid.length > 0) {
-					const avgLat = valid.reduce((sum, item) => sum + item.lat, 0) / valid.length;
-					const avgLng = valid.reduce((sum, item) => sum + item.lng, 0) / valid.length;
-					setMapCenter([avgLat, avgLng]);
-				}
+				if (!isMounted) return;
+				setParcheggi(Array.isArray(data) ? data : []);
 			} catch (error) {
-				console.warn('Caricamento parcheggi non disponibile:', error);
+				if (!isMounted) return;
 				setParcheggi([]);
 			} finally {
-				setIsLoadingParcheggi(false);
+				if (isMounted) {
+					setIsLoadingParcheggi(false);
+				}
 			}
 		};
 
 		loadParcheggi();
+
+		return () => {
+			isMounted = false;
+		};
 	}, []);
 
 	useEffect(() => {
-		if (!mapNodeRef.current || mapInstanceRef.current) return undefined;
+		const map = mapRef.current;
+		const layerGroup = markersLayerRef.current;
+		if (!map || !layerGroup) return;
 
-		const map = L.map(mapNodeRef.current, {
-			zoomControl: false,
-			attributionControl: true,
-			minZoom: MIN_CITY_ZOOM,
-			maxZoom: 19,
-		}).setView(mapCenter, 17);
+		layerGroup.clearLayers();
 
-		mapInstanceRef.current = map;
-		parkingLayerRef.current.addTo(map);
-
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			minZoom: MIN_CITY_ZOOM,
-			maxZoom: 19,
-			attribution: '&copy; OpenStreetMap contributors',
-		}).addTo(map);
-
-		return () => {
-			parkingLayerRef.current.remove();
-			if (userLayerRef.current) {
-				userLayerRef.current.remove();
-				userLayerRef.current = null;
-			}
-			map.remove();
-			mapInstanceRef.current = null;
-		};
-	}, [mapCenter]);
-
-	useEffect(() => {
-		const map = mapInstanceRef.current;
-		if (!map) return;
-
-		if (!currentPosition) return;
-
-		if (userLayerRef.current) {
-			userLayerRef.current.remove();
-		}
-
-		const { latitude, longitude, accuracy } = currentPosition;
-		const position = [latitude, longitude];
-
-		userLayerRef.current = L.layerGroup([
-			L.circle(position, {
-				radius: Math.max(accuracy || 25, 18),
-				color: '#2563eb',
-				weight: 2,
-				fillColor: '#60a5fa',
-				fillOpacity: 0.18,
-			}),
-			L.circleMarker(position, {
-				radius: 7,
-				color: '#ffffff',
-				weight: 3,
-				fillColor: '#2563eb',
-				fillOpacity: 1,
-			}),
-		]).addTo(map);
-
-		map.setView(position, 18, { animate: true });
-	}, [currentPosition]);
-
-	useEffect(() => {
-		const map = mapInstanceRef.current;
-		if (!map) return;
-
-		parkingLayerRef.current.clearLayers();
+		const bounds = [];
 
 		parcheggi.forEach((parcheggio) => {
-			const label = (parcheggio.nome || '?').substring(0, 1).toUpperCase();
-			const marker = L.marker([parcheggio.lat, parcheggio.lng], {
-				icon: createParkingIcon(parcheggio.stato, label),
-				keyboard: false,
-			});
+			if (!Number.isFinite(parcheggio?.lat) || !Number.isFinite(parcheggio?.lng)) return;
 
-			marker.bindPopup(`
-				<div>
-					<strong>${parcheggio.nome || 'Parcheggio'}</strong><br />
-					Posti: ${parcheggio.posti_totali ?? '-'}<br />
-					Stato: ${parcheggio.stato || '-'}<br />
-					${parcheggio.via ? `Indirizzo: ${parcheggio.via}<br />` : ''}
-					${parcheggio.citta ? `${parcheggio.citta}` : ''}
-				</div>
-			`);
+			const stateKey = parcheggio.stato || 'disponibile';
+			const config = parkingStatusConfig[stateKey] || parkingStatusConfig.disponibile;
+			const icon = buildParkingIcon(config);
 
-			marker.addTo(parkingLayerRef.current);
+			const marker = L.marker([parcheggio.lat, parcheggio.lng], { icon });
+
+			const address = formatParcheggioAddress(parcheggio);
+			const popupLines = [
+				`<strong>${parcheggio.nome || 'Parcheggio'}</strong>`,
+				address ? `<div>${address}</div>` : '',
+				parcheggio.posti_totali ? `<div>Posti: ${parcheggio.posti_totali}</div>` : '',
+			];
+			marker.bindPopup(popupLines.filter(Boolean).join(''));
+
+			marker.addTo(layerGroup);
+			bounds.push([parcheggio.lat, parcheggio.lng]);
 		});
+
+		if (!hasAutoCenteredRef.current && bounds.length > 0) {
+			map.fitBounds(bounds, { padding: [40, 40] });
+			hasAutoCenteredRef.current = true;
+		}
 	}, [parcheggi]);
 
-	useEffect(() => {
-		if (locationState !== 'granted') return undefined;
-		if (!navigator.geolocation) {
+	const requestLocation = useCallback(() => {
+		if (!navigator?.geolocation) {
 			setLocationState('error');
-			setLocationError('Geolocalizzazione non supportata.');
-			return undefined;
+			setLocationError('Geolocalizzazione non disponibile.');
+			return;
 		}
 
-		if (watchIdRef.current !== null) {
-			navigator.geolocation.clearWatch(watchIdRef.current);
-		}
+		const requestId = locateRequestRef.current + 1;
+		locateRequestRef.current = requestId;
+		setLocationState('locating');
+		setLocationError('');
 
-		watchIdRef.current = navigator.geolocation.watchPosition(
+		navigator.geolocation.getCurrentPosition(
 			(position) => {
-				setCurrentPosition({
-					latitude: position.coords.latitude,
-					longitude: position.coords.longitude,
+				if (locateRequestRef.current !== requestId) return;
+				const location = {
+					lat: position.coords.latitude,
+					lng: position.coords.longitude,
 					accuracy: position.coords.accuracy,
-				});
+					timestamp: position.timestamp,
+				};
+
+				setLocationState('ready');
 				setLocationError('');
+				writeStoredLocation(location);
+				updateUserLocation(location);
+
+				if (mapRef.current) {
+					mapRef.current.setView([location.lat, location.lng], 16);
+				}
 			},
 			(error) => {
+				if (locateRequestRef.current !== requestId) return;
 				setLocationState('error');
-				setLocationError(error.code === 1 ? 'Permesso negato.' : 'Impossibile ottenere la posizione.');
+				setLocationError(getLocationErrorMessage(error));
 			},
-			{ enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+			{ enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 }
 		);
+	}, [updateUserLocation]);
 
-		return () => {
-			if (watchIdRef.current !== null) {
-				navigator.geolocation.clearWatch(watchIdRef.current);
-				watchIdRef.current = null;
-			}
-		};
-	}, [locationState]);
+	const handleEnableLocation = useCallback(() => {
+		setLocationConsent('granted');
+		setShowConsentPopup(false);
+		requestLocation();
+	}, [requestLocation]);
 
-	useEffect(() => {
-		if (!mapInstanceRef.current) return;
-		if (locationState === 'granted') {
-			mapInstanceRef.current.setView(mapCenter, 17);
-		}
-	}, [mapCenter, locationState]);
-
-	const handleEnableLocation = () => {
-		setCookie(LOCATION_CONSENT_COOKIE, 'granted');
-		setLocationState('granted');
-	};
-
-	const handleDismissLocation = () => {
-		setCookie(LOCATION_CONSENT_COOKIE, 'denied');
-		setLocationState('dismissed');
-		setLocationError('');
-	};
-
-	const handleGoToCurrentPosition = () => {
-		if (!currentPosition || !mapInstanceRef.current) return;
-		mapInstanceRef.current.setView([currentPosition.latitude, currentPosition.longitude], 18, { animate: true });
-	};
-
-	const handleSearchSelect = (item) => {
-		if (!mapInstanceRef.current) return;
-		mapInstanceRef.current.setView([item.latitude, item.longitude], 18, { animate: true });
-	};
-
-	useEffect(() => {
-		return () => {
-			if (watchIdRef.current !== null && navigator.geolocation) {
-				navigator.geolocation.clearWatch(watchIdRef.current);
-				watchIdRef.current = null;
-			}
-		};
+	const handleDismissLocation = useCallback(() => {
+		setLocationConsent('denied');
+		setShowConsentPopup(false);
 	}, []);
+
+	const handleGoToCurrentPosition = useCallback(() => {
+		const consent = getLocationConsent();
+		if (consent === 'granted') {
+			requestLocation();
+			return;
+		}
+		if (consent === 'denied') {
+			setLocationState('error');
+			setLocationError('Permesso posizione negato nelle preferenze.');
+			return;
+		}
+		setShowConsentPopup(true);
+	}, [requestLocation]);
+
+	const handleSearchSelect = useCallback((item) => {
+		if (!item || !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) return;
+		const map = mapRef.current;
+		if (!map) return;
+
+		const latLng = [item.latitude, item.longitude];
+		if (!searchMarkerRef.current) {
+			searchMarkerRef.current = L.circleMarker(latLng, {
+				radius: 7,
+				color: '#111827',
+				weight: 2,
+				fillColor: '#fbbf24',
+				fillOpacity: 0.95,
+			}).addTo(map);
+		} else {
+			searchMarkerRef.current.setLatLng(latLng);
+		}
+		map.setView(latLng, 16);
+	}, []);
+
+	useEffect(() => {
+		const consent = getLocationConsent();
+		if (!consent && !initialLocation) {
+			setShowConsentPopup(true);
+		}
+	}, [initialLocation]);
 
 	return {
 		mapNodeRef,

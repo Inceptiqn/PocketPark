@@ -4,14 +4,22 @@ import Menu from './components/home/menu';
 import Stats from './components/home/stats';
 import DashboardCard from './components/home/dashboard-card';
 import Mappa from './components/maps/mappa.jsx';
-import Biglietti from './components/biglietti/Biglietti';
+import Biglietti from './components/biglietti/biglietti';
 import Selector from './components/nuovo/selector';
 import Forum from './components/nuovo/forum';
 import ProfilePage from './components/profile/ProfilePage.jsx';
+import VehicleCard from './components/profile/VehicleCard.jsx';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
-import { isLoggedIn, getBaseUrl } from './utils';
-import { getPrenotazioniByUtenteId, getUsers, getVeicoliByUtenteId } from './API';
+import { getAuthToken, isLoggedIn } from './utils';
+import {
+	getCurrentUserId,
+	getPrenotazioniByUtenteId,
+	getUserById,
+	getVeicoliByUtenteId,
+	logout,
+	validateToken,
+} from './API';
 
 function PlaceholderPage({ title, subtitle }) {
 	return (
@@ -26,26 +34,82 @@ function App() {
 	const [activeItem, setActiveItem] = useState('home');
 	const [selectorType, setSelectorType] = useState('auto');
 	const [currentUser, setCurrentUser] = useState(null);
+	const [currentUserId, setCurrentUserId] = useState('');
 	const [veicoli, setVeicoli] = useState([]);
 	const [prenotazioni, setPrenotazioni] = useState([]);
+	const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+	const [authenticated, setAuthenticated] = useState(() => {
+		try {
+			return isLoggedIn();
+		} catch (e) {
+			return false;
+		}
+	});
+	const [authView, setAuthView] = useState('login');
+
+	useEffect(() => {
+		let isMounted = true;
+		const checkAuth = async () => {
+			const token = getAuthToken();
+			if (!token) {
+				if (isMounted) {
+					setAuthenticated(false);
+					setCurrentUserId('');
+					setIsAuthChecking(false);
+				}
+				return;
+			}
+			try {
+				const result = await validateToken(token);
+				if (result.valid && result.user_id) {
+					if (isMounted) {
+						setAuthenticated(true);
+						setCurrentUserId(result.user_id);
+					}
+				} else {
+					logout();
+					if (isMounted) {
+						setAuthenticated(false);
+						setCurrentUserId('');
+					}
+				}
+			} catch (error) {
+				console.error('Errore validazione token:', error);
+				logout();
+				if (isMounted) {
+					setAuthenticated(false);
+					setCurrentUserId('');
+				}
+			} finally {
+				if (isMounted) {
+					setIsAuthChecking(false);
+				}
+			}
+		};
+
+		checkAuth();
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	useEffect(() => {
 		let isMounted = true;
 		const loadHomeData = async () => {
-			try {
-				const users = await getUsers();
-				const user = users[0] || null;
-				if (!user) {
-					if (isMounted) {
-						setCurrentUser(null);
-						setVeicoli([]);
-						setPrenotazioni([]);
-					}
-					return;
+			if (!authenticated || !currentUserId) {
+				if (isMounted) {
+					setCurrentUser(null);
+					setVeicoli([]);
+					setPrenotazioni([]);
 				}
-				const [veicoliData, prenotazioniData] = await Promise.all([
-					getVeicoliByUtenteId(user.id),
-					getPrenotazioniByUtenteId(user.id),
+				return;
+			}
+			try {
+				const [user, veicoliData, prenotazioniData] = await Promise.all([
+					getUserById(currentUserId),
+					getVeicoliByUtenteId(currentUserId),
+					getPrenotazioniByUtenteId(currentUserId),
 				]);
 				if (isMounted) {
 					setCurrentUser(user);
@@ -61,16 +125,7 @@ function App() {
 		return () => {
 			isMounted = false;
 		};
-	}, []);
-
-	const [authenticated, setAuthenticated] = useState(() => {
-		try {
-			return isLoggedIn();
-		} catch (e) {
-			return false;
-		}
-	});
-	const [authView, setAuthView] = useState('login');
+	}, [authenticated, currentUserId]);
 
 	const activePrenotazione = useMemo(() => {
 		const now = new Date();
@@ -95,10 +150,6 @@ function App() {
 	}, [prenotazioni]);
 
 	const renderPage = () => {
-		if (!authenticated) {
-			return <LoginPage onLogin={() => setAuthenticated(true)} />;
-		}
-
 		switch (activeItem) {
 			case 'home':
 				return (
@@ -149,7 +200,23 @@ function App() {
 					</div>
 				);
 			case 'cars':
-				return <PlaceholderPage title="Le Tue Auto" subtitle="Qui puoi gestire i tuoi veicoli." />;
+				return (
+					<section className="pp-cars-page" aria-label="Le Tue Auto">
+						<header className="pp-cars-page__header">
+							<h1 className="pp-cars-page__title">Le Tue Auto</h1>
+							<p className="pp-cars-page__subtitle">Qui puoi gestire i tuoi veicoli.</p>
+						</header>
+						<div className="pp-cars-page__list">
+							{veicoli.length > 0 ? (
+								veicoli.map((veicolo) => (
+									<VehicleCard key={veicolo.id} veicolo={veicolo} />
+								))
+							) : (
+								<p className="pp-cars-page__empty">Nessun veicolo registrato</p>
+							)}
+						</div>
+					</section>
+				);
 			case 'biglietti':
 				return <Biglietti />;
 			case 'profile':
@@ -159,13 +226,37 @@ function App() {
 		}
 	};
 
+	const handleLogin = (user) => {
+		setAuthenticated(true);
+		setCurrentUserId(user?.id || getCurrentUserId());
+	};
+
+	if (isAuthChecking) {
+		return (
+			<main className="app-shell">
+				<div className="phone-screen auth-mode">
+					<div className="phone-page">
+						<section className="page-placeholder" aria-label="Caricamento">
+							<h1 className="page-placeholder__title">Caricamento...</h1>
+							<p className="page-placeholder__subtitle">Verifica sessione in corso.</p>
+						</section>
+					</div>
+				</div>
+			</main>
+		);
+	}
+
 	if (!authenticated) {
 		return (
 			<main className="app-shell">
 				<div className="phone-screen auth-mode">
 					<div className="phone-page">
-						{authView === 'login' && <LoginPage onLogin={() => setAuthenticated(true)} onSwitchToRegister={() => setAuthView('register')} />}
-						{authView === 'register' && <RegisterPage onRegistered={() => setAuthenticated(true)} onCancel={() => setAuthView('login')} />}
+						{authView === 'login' && (
+							<LoginPage onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />
+						)}
+						{authView === 'register' && (
+							<RegisterPage onRegistered={handleLogin} onCancel={() => setAuthView('login')} />
+						)}
 					</div>
 				</div>
 			</main>

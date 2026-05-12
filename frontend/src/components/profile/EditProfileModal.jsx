@@ -14,12 +14,14 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
 		try {
 			setLoading(true);
 			setError(null);
-			await updateUser(user.id, {
+			const updatedUser = await updateUser(user.id, {
 				nome,
 				cognome,
 				email,
 			});
-			onUpdate();
+			if (onUpdate) {
+				onUpdate(updatedUser);
+			}
 		} catch (err) {
 			setError(err.message || 'Errore nell\'aggiornamento');
 		} finally {

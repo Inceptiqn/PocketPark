@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const SEARCH_DEBOUNCE_MS = 150;
 const SEARCH_LIMIT = 5;
-const SEARCH_ENDPOINT = 'https://photon.komoot.io/api';
+const SEARCH_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
+const PHOTON_ENDPOINT = 'https://photon.komoot.io/api/';
 
 function normalizeQuery(value) {
 	return value.trim().replace(/\s+/g, ' ');
@@ -11,29 +12,78 @@ function normalizeQuery(value) {
 function buildSearchUrl(query) {
 	const params = new URLSearchParams({
 		q: query,
+		format: 'json',
+		addressdetails: '1',
 		limit: String(SEARCH_LIMIT),
+		'accept-language': 'it',
 	});
 
 	return `${SEARCH_ENDPOINT}?${params.toString()}`;
 }
 
+function buildPhotonUrl(query) {
+	const params = new URLSearchParams({
+		q: query,
+		limit: String(SEARCH_LIMIT),
+		lang: 'it',
+	});
+
+	return `${PHOTON_ENDPOINT}?${params.toString()}`;
+}
+
+
 function mapResults(data) {
+	const items = Array.isArray(data) ? data : [];
+
+	return items
+		.map((item) => {
+			const address = item.address || {};
+			const nameParts = [
+				address.road || address.pedestrian || address.footway || address.cycleway,
+				address.house_number,
+				address.postcode,
+				address.city || address.town || address.village || address.state,
+				address.country,
+			].filter(Boolean);
+
+			return {
+				id: item.place_id,
+				name: nameParts.length > 0 ? nameParts.join(', ') : item.display_name,
+				latitude: Number(item.lat),
+				longitude: Number(item.lon),
+				type: item.type || item.class || 'indirizzo',
+			};
+		})
+		.filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+}
+
+function mapPhotonResults(data) {
 	const features = Array.isArray(data?.features) ? data.features : [];
 
-	return features.map((feature) => {
-		const properties = feature.properties || {};
-		const coordinates = feature.geometry?.coordinates || [];
-		const nameParts = [properties.name, properties.street, properties.housenumber, properties.city || properties.state, properties.country].filter(Boolean);
+	return features
+		.map((feature) => {
+			const properties = feature.properties || {};
+			const coordinates = feature.geometry?.coordinates || [];
+			const nameParts = [
+				properties.name,
+				properties.street,
+				properties.housenumber,
+				properties.postcode,
+				properties.city || properties.state,
+				properties.country,
+			].filter(Boolean);
 
-		return {
-			id: properties.osm_id || feature.id,
-			name: nameParts.join(', '),
-			latitude: Number(coordinates[1]),
-			longitude: Number(coordinates[0]),
-			type: properties.osm_type || properties.type || 'indirizzo',
-		};
-	}).filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+			return {
+				id: properties.osm_id || feature.id,
+				name: nameParts.join(', '),
+				latitude: Number(coordinates[1]),
+				longitude: Number(coordinates[0]),
+				type: properties.osm_type || properties.type || 'indirizzo',
+			};
+		})
+		.filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
 }
+
 
 export function useSearchController({ onSelect } = {}) {
 	const [query, setQuery] = useState('');
@@ -86,6 +136,7 @@ export function useSearchController({ onSelect } = {}) {
 		try {
 			const response = await fetch(buildSearchUrl(searchText), {
 				signal: controller.signal,
+				headers: { 'Accept-Language': 'it' },
 			});
 
 			if (!response.ok) {
@@ -103,9 +154,30 @@ export function useSearchController({ onSelect } = {}) {
 		} catch (fetchError) {
 			if (fetchError?.name === 'AbortError') return;
 
-			if (requestRef.current === requestId) {
-				setResults([]);
-				setError('Errore di rete durante la ricerca.');
+			try {
+				const photonResponse = await fetch(buildPhotonUrl(searchText), {
+					signal: controller.signal,
+					headers: { 'Accept-Language': 'it' },
+				});
+
+				if (!photonResponse.ok) {
+					throw new Error(`HTTP ${photonResponse.status}`);
+				}
+
+				const photonData = await photonResponse.json();
+				const mapped = mapPhotonResults(photonData);
+
+				if (requestRef.current !== requestId) return;
+
+				setResults(mapped);
+				cacheRef.current.set(searchText.toLowerCase(), mapped);
+				setError(mapped.length === 0 ? 'Nessun risultato. Prova a inserire anche citta o CAP.' : '');
+			} catch (fallbackError) {
+				if (fallbackError?.name === 'AbortError') return;
+				if (requestRef.current === requestId) {
+					setResults([]);
+					setError('Errore di rete durante la ricerca.');
+				}
 			}
 		} finally {
 			if (requestRef.current === requestId) {

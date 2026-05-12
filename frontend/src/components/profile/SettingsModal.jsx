@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logout } from '../../API';
 import './SettingsModal.css';
 
 export default function SettingsModal({ onClose }) {
@@ -17,9 +18,7 @@ export default function SettingsModal({ onClose }) {
 
 	function handleMenuClick(section) {
 		if (section === 'Logout') {
-			// Clear session and redirect
-			localStorage.removeItem('pp_user_id');
-			localStorage.removeItem('pp_auth_token');
+			logout();
 			window.location.href = '/';
 		} else {
 			setActiveSection(section);
