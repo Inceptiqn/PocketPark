@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from passlib.hash import bcrypt
+import bcrypt
 from uuid import uuid4
 
 from db import get_session
@@ -27,7 +27,10 @@ def login():
         if not user:
             return jsonify(error="invalid_credentials"), 401
 
-        if not bcrypt.verify(password, user.password_hash):
+        if not bcrypt.checkpw(
+            password.encode("utf-8"),
+            user.password_hash.encode("utf-8"),
+        ):
             return jsonify(error="invalid_credentials"), 401
 
         # generate token

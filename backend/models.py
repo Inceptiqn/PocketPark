@@ -80,7 +80,10 @@ class Parcheggio(Base):
     lat: Mapped[float | None] = mapped_column(Float)
     lng: Mapped[float | None] = mapped_column(Float)
     posti_totali: Mapped[int] = mapped_column(Integer, nullable=False)
-    stato: Mapped[ParcheggioStato] = mapped_column(SAEnum(ParcheggioStato, name="parcheggio_stato"), nullable=False)
+    stato: Mapped[ParcheggioStato] = mapped_column(
+        SAEnum(ParcheggioStato, name="parcheggio_stato", values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+    )
     descrizione: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
@@ -114,7 +117,10 @@ class Prenotazione(Base):
     tariffa_id: Mapped[UUID] = mapped_column(ForeignKey("tariffe.id"), nullable=False)
     inizio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fine: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    stato: Mapped[PrenotazioneStato] = mapped_column(SAEnum(PrenotazioneStato, name="prenotazione_stato"), nullable=False)
+    stato: Mapped[PrenotazioneStato] = mapped_column(
+        SAEnum(PrenotazioneStato, name="prenotazione_stato", values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+    )
     importo_totale: Mapped[float | None] = mapped_column(Numeric(10, 2))
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

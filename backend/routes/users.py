@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from passlib.hash import bcrypt
+import bcrypt
 
 from db import get_session
 from models import User
@@ -29,10 +29,11 @@ def create_user():
         missing = [field for field in required if field not in data]
         if missing:
             return jsonify(error="missing_fields", fields=missing), 400
+        password_hash = bcrypt.hashpw(data["password"].encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         user = User(
             role_id=data["role_id"],
             email=data["email"],
-            password_hash=bcrypt.hash(data["password"]),
+            password_hash=password_hash,
             nome=data["nome"],
             cognome=data["cognome"],
             is_active=data.get("is_active", True),
@@ -75,7 +76,10 @@ def update_user(user_id):
         if "password_hash" in data:
             return jsonify(error="invalid_field", field="password_hash"), 400
         if "password" in data:
-            user.password_hash = bcrypt.hash(data["password"])
+            user.password_hash = bcrypt.hashpw(
+                data["password"].encode("utf-8"),
+                bcrypt.gensalt(),
+            ).decode("utf-8")
         if "nome" in data:
             user.nome = data["nome"]
         if "cognome" in data:
