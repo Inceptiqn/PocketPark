@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './biglietti.css';
 import { getCurrentUserId, getParcheggi, getPrenotazioniByUtenteId } from '../../API';
 
-// Componente per la singola card del biglietto
 const TicketCard = ({ ticket }) => {
+  const { status, park, date, time } = ticket;
   return (
-    <div className={`ticket-card ${ticket.status}`}>
+    <div className={`ticket-card ${status}`}>
       <div className="ticket-header">
-        <h3>{ticket.park}</h3>
-        <span className={`ticket-status-badge ${ticket.status}`}>
-          {ticket.status.replace('_', ' ')}
-        </span>
+        <h3>{park}</h3>
+        <span className={`ticket-status-badge ${status}`}>{status.replace('_', ' ')}</span>
       </div>
       <div className="ticket-body">
-        <p><strong>Data:</strong> {ticket.date}</p>
-        <p><strong>Ora:</strong> {ticket.time}</p>
+        <p>
+          <strong>Data:</strong> {date}
+        </p>
+        <p>
+          <strong>Ora:</strong> {time}
+        </p>
       </div>
-      {/* La sezione per i biglietti disponibili è stata rimossa completamente */}
     </div>
   );
 };
@@ -84,9 +85,7 @@ const Biglietti = () => {
     };
   }, [userId]);
 
-  const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => ticket.status === activeTab);
-  }, [activeTab, tickets]);
+  const filteredTickets = tickets.filter((ticket) => ticket.status === activeTab);
 
   return (
     <div className="biglietti-container">

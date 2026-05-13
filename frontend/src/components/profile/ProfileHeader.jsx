@@ -1,5 +1,3 @@
-import SettingsButton from './SettingsButton';
-
 export default function ProfileHeader({ user, onEditClick, onSettingsClick }) {
 	const initials = `${user.nome[0]}${user.cognome[0]}`.toUpperCase();
 	const fullName = `${user.nome} ${user.cognome}`;
@@ -23,7 +21,18 @@ export default function ProfileHeader({ user, onEditClick, onSettingsClick }) {
 				<p className="pp-profile-header__email">{user.email}</p>
 			</div>
 			<div className="pp-profile-header__settings-slot">
-				<SettingsButton onClick={onSettingsClick} />
+				<button
+					className="pp-settings-btn"
+					onClick={onSettingsClick}
+					aria-label="Impostazioni"
+				>
+					<img
+						className="pp-settings-btn__icon"
+						src="https://www.svgrepo.com/show/522658/settings.svg"
+						alt=""
+						aria-hidden="true"
+					/>
+				</button>
 			</div>
 		</div>
 	);

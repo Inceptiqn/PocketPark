@@ -11,24 +11,16 @@ import ProfilePage from './components/profile/ProfilePage.jsx';
 import VehicleCard from './components/profile/VehicleCard.jsx';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
-import { getAuthToken, isLoggedIn } from './utils';
 import {
 	getCurrentUserId,
 	getPrenotazioniByUtenteId,
 	getUserById,
 	getVeicoliByUtenteId,
+	getAuthToken,
+	isLoggedIn,
 	logout,
 	validateToken,
 } from './API';
-
-function PlaceholderPage({ title, subtitle }) {
-	return (
-		<section className="page-placeholder" aria-label={title}>
-			<h1 className="page-placeholder__title">{title}</h1>
-			<p className="page-placeholder__subtitle">{subtitle}</p>
-		</section>
-	);
-}
 
 function App() {
 	const [activeItem, setActiveItem] = useState('home');

@@ -1,50 +1,41 @@
+
 import { useState } from 'react';
 import { logout } from '../../API';
 import './SettingsModal.css';
 
+const sections = [
+	'Privacy',
+	'Accessibilità',
+	'Lingua',
+	'Notifiche',
+	'Dati personali',
+	'Cronologia',
+	'Logout',
+	'Termini e condizioni',
+];
+
+const contentMap = {
+	Privacy: 'Gestisci le tue impostazioni di privacy e visibilità del profilo.',
+	Accessibilità: 'Configura le opzioni di accessibilità per una migliore esperienza.',
+	Lingua: 'Seleziona la lingua preferita per l\'app.',
+	Notifiche: 'Controlla quali notifiche vuoi ricevere.',
+	'Dati personali': 'Visualizza e scarica i tuoi dati personali.',
+	Cronologia: 'Cancella la tua cronologia di ricerca e prenotazioni.',
+	'Termini e condizioni': 'Leggi i termini e le condizioni di utilizzo.',
+};
+
 export default function SettingsModal({ onClose }) {
 	const [activeSection, setActiveSection] = useState(null);
+	const content = activeSection ? contentMap[activeSection] : '';
 
-	const sections = [
-		'Privacy',
-		'Accessibilità',
-		'Lingua',
-		'Notifiche',
-		'Dati personali',
-		'Cronologia',
-		'Logout',
-		'Termini e condizioni',
-	];
-
-	function handleMenuClick(section) {
+	const handleMenuClick = (section) => {
 		if (section === 'Logout') {
 			logout();
 			window.location.href = '/';
-		} else {
-			setActiveSection(section);
+			return;
 		}
-	}
-
-	function renderContent() {
-		if (!activeSection) return null;
-
-		const contentMap = {
-			Privacy: 'Gestisci le tue impostazioni di privacy e visibilità del profilo.',
-			Accessibilità: 'Configura le opzioni di accessibilità per una migliore esperienza.',
-			Lingua: 'Seleziona la lingua preferita per l\'app.',
-			Notifiche: 'Controlla quali notifiche vuoi ricevere.',
-			'Dati personali': 'Visualizza e scarica i tuoi dati personali.',
-			Cronologia: 'Cancella la tua cronologia di ricerca e prenotazioni.',
-			'Termini e condizioni': 'Leggi i termini e le condizioni di utilizzo.',
-		};
-
-		return (
-			<div className="pp-settings-modal__content">
-				<h3 className="pp-settings-modal__content-title">{activeSection}</h3>
-				<p className="pp-settings-modal__content-text">{contentMap[activeSection]}</p>
-			</div>
-		);
-	}
+		setActiveSection(section);
+	};
 
 	return (
 		<div className="pp-settings-modal-overlay" onClick={onClose}>
@@ -76,7 +67,12 @@ export default function SettingsModal({ onClose }) {
 					</div>
 
 					<div className="pp-settings-modal__view">
-						{renderContent() || (
+						{content ? (
+							<div className="pp-settings-modal__content">
+								<h3 className="pp-settings-modal__content-title">{activeSection}</h3>
+								<p className="pp-settings-modal__content-text">{content}</p>
+							</div>
+						) : (
 							<div className="pp-settings-modal__placeholder">
 								<p>Seleziona una voce dal menu</p>
 							</div>
